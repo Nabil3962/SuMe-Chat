@@ -5,9 +5,7 @@
 <title>SuMe-Chat | Secure P2P Chat</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background-color: #1b1b1b;
@@ -23,11 +21,11 @@ body {
 
 #chatCard {
   width: 100%;
-  max-width: 480px;
+  max-width: 700px;   /* updated width */
   background: #262626;
   border-radius: 20px;
   box-shadow: 0 8px 20px rgba(0,0,0,0.5);
-  padding: 20px;
+  padding: 25px;
   display: flex;
   flex-direction: column;
   gap: 15px;
@@ -36,9 +34,9 @@ body {
 h2 {
   color: #28a745;
   text-align: center;
-  margin: 0 0 10px 0;
+  margin: 0 0 15px 0;
   font-weight: 600;
-  font-size: 1.5rem;
+  font-size: 1.8rem;
 }
 
 #myId {
@@ -46,52 +44,52 @@ h2 {
   justify-content: space-between;
   align-items: center;
   background: #2e2e2e;
-  padding: 10px 15px;
+  padding: 12px 15px;
   border-radius: 15px;
-  font-size: 0.9rem;
+  font-size: 1rem;
   flex-wrap: wrap;
 }
 #copyBtn {
-  padding: 5px 10px;
+  padding: 6px 12px;
   border: none;
   border-radius: 12px;
   background: #28a745;
   color: white;
   cursor: pointer;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   margin-top: 5px;
 }
 #copyBtn:hover { background: #1e7e34; }
 
 .connect-row {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 .connect-row input {
-  flex: 1 1 200px;
-  padding: 10px;
+  flex: 1 1 250px;
+  padding: 12px;
   border-radius: 15px;
   border: none;
   background: #2e2e2e;
   color: #fff;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
 }
 .connect-row button {
-  padding: 10px 15px;
+  padding: 12px 18px;
   border-radius: 15px;
   border: none;
   background: #28a745;
   color: white;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
 }
 .connect-row button:hover { background: #1e7e34; }
 
 #status {
   text-align: center;
-  font-size: 0.85rem;
-  padding: 5px;
+  font-size: 0.9rem;
+  padding: 6px;
   border-radius: 12px;
   word-break: break-word;
 }
@@ -103,7 +101,7 @@ h2 {
   flex: 1;
   display: flex;
   flex-direction: column;
-  height: 400px;
+  height: 550px;  /* increased height */
   background: #1e1e1e;
   border-radius: 20px;
   overflow: hidden;
@@ -111,7 +109,7 @@ h2 {
 }
 #chat {
   flex: 1;
-  padding: 15px;
+  padding: 18px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -119,45 +117,45 @@ h2 {
 }
 
 .message {
-  padding: 10px 15px;
+  padding: 10px 18px;
   border-radius: 20px;
   max-width: 75%;
   word-wrap: break-word;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   position: relative;
   box-shadow: 0 2px 6px rgba(0,0,0,0.3);
 }
 .me { background-color: #28a745; color: white; align-self: flex-end; border-bottom-right-radius: 5px; }
 .friend { background-color: #2e2e2e; color: #fff; align-self: flex-start; border-bottom-left-radius: 5px; }
 .system { background-color: #444; color: #ffcc00; align-self: center; max-width: 90%; text-align: center; font-weight: bold; }
-.timestamp { font-size: 0.7rem; color: #aaa; margin-top: 2px; text-align: right; }
+.timestamp { font-size: 0.75rem; color: #aaa; margin-top: 2px; text-align: right; }
 
 #controls {
   display: flex;
-  gap: 10px;
-  padding: 10px;
+  gap: 12px;
+  padding: 12px;
   background: #2e2e2e;
   border-radius: 15px;
   flex-wrap: wrap;
 }
 #msgInput {
-  flex: 1 1 150px;
-  padding: 10px;
+  flex: 1 1 200px;
+  padding: 12px;
   border-radius: 15px;
   border: none;
   outline: none;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   background: #1e1e1e;
   color: #fff;
 }
 #sendBtn {
-  padding: 10px 15px;
+  padding: 12px 18px;
   border-radius: 15px;
   border: none;
   background: #28a745;
   color: white;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
 }
 #sendBtn:disabled { opacity: 0.5; cursor: not-allowed; }
 #sendBtn:hover:enabled { background: #1e7e34; }
@@ -166,20 +164,20 @@ h2 {
   text-align: center;
   font-weight: bold;
   color: #ffcc00;
-  margin-top: 10px;
+  margin-top: 12px;
   text-shadow: 0 0 5px #ffcc00;
-  font-size: 0.9rem;
+  font-size: 1rem;
 }
 
-/* --- Media Queries for smaller devices --- */
-@media(max-width: 400px){
+/* Media Queries for smaller devices */
+@media(max-width: 480px){
   #chatCard { padding: 15px; }
-  h2 { font-size: 1.3rem; }
-  .connect-row input, #msgInput { font-size: 0.85rem; }
+  h2 { font-size: 1.4rem; }
+  .connect-row input, #msgInput { font-size: 0.85rem; padding: 10px; }
   .connect-row button, #sendBtn, #copyBtn { font-size: 0.8rem; padding: 8px 12px; }
   .message { font-size: 0.85rem; }
   #status { font-size: 0.8rem; }
-  #footer { font-size: 0.8rem; }
+  #footer { font-size: 0.85rem; }
 }
 </style>
 </head>
