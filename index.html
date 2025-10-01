@@ -3,7 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <title>SuMe-Chat | Secure P2P Chat</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
+* {
+  box-sizing: border-box;
+}
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background-color: #1b1b1b;
@@ -14,12 +18,12 @@ body {
   justify-content: center;
   align-items: flex-start;
   min-height: 100vh;
-  padding-top: 30px;
+  padding: 20px 10px;
 }
 
 #chatCard {
-  width: 90%;
-  max-width: 500px;
+  width: 100%;
+  max-width: 480px;
   background: #262626;
   border-radius: 20px;
   box-shadow: 0 8px 20px rgba(0,0,0,0.5);
@@ -34,6 +38,7 @@ h2 {
   text-align: center;
   margin: 0 0 10px 0;
   font-weight: 600;
+  font-size: 1.5rem;
 }
 
 #myId {
@@ -43,7 +48,8 @@ h2 {
   background: #2e2e2e;
   padding: 10px 15px;
   border-radius: 15px;
-  font-size: 14px;
+  font-size: 0.9rem;
+  flex-wrap: wrap;
 }
 #copyBtn {
   padding: 5px 10px;
@@ -52,22 +58,24 @@ h2 {
   background: #28a745;
   color: white;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 0.8rem;
+  margin-top: 5px;
 }
 #copyBtn:hover { background: #1e7e34; }
 
 .connect-row {
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
 }
 .connect-row input {
-  flex: 1;
+  flex: 1 1 200px;
   padding: 10px;
   border-radius: 15px;
   border: none;
   background: #2e2e2e;
   color: #fff;
-  font-size: 14px;
+  font-size: 0.9rem;
 }
 .connect-row button {
   padding: 10px 15px;
@@ -76,15 +84,16 @@ h2 {
   background: #28a745;
   color: white;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 0.9rem;
 }
 .connect-row button:hover { background: #1e7e34; }
 
 #status {
   text-align: center;
-  font-size: 13px;
+  font-size: 0.85rem;
   padding: 5px;
   border-radius: 12px;
+  word-break: break-word;
 }
 #status.connecting { color: orange; }
 #status.connected { color: #00ff00; }
@@ -114,14 +123,14 @@ h2 {
   border-radius: 20px;
   max-width: 75%;
   word-wrap: break-word;
-  font-size: 14px;
+  font-size: 0.9rem;
   position: relative;
   box-shadow: 0 2px 6px rgba(0,0,0,0.3);
 }
 .me { background-color: #28a745; color: white; align-self: flex-end; border-bottom-right-radius: 5px; }
 .friend { background-color: #2e2e2e; color: #fff; align-self: flex-start; border-bottom-left-radius: 5px; }
 .system { background-color: #444; color: #ffcc00; align-self: center; max-width: 90%; text-align: center; font-weight: bold; }
-.timestamp { font-size: 10px; color: #aaa; margin-top: 2px; text-align: right; }
+.timestamp { font-size: 0.7rem; color: #aaa; margin-top: 2px; text-align: right; }
 
 #controls {
   display: flex;
@@ -129,14 +138,15 @@ h2 {
   padding: 10px;
   background: #2e2e2e;
   border-radius: 15px;
+  flex-wrap: wrap;
 }
 #msgInput {
-  flex: 1;
+  flex: 1 1 150px;
   padding: 10px;
   border-radius: 15px;
   border: none;
   outline: none;
-  font-size: 14px;
+  font-size: 0.9rem;
   background: #1e1e1e;
   color: #fff;
 }
@@ -147,7 +157,7 @@ h2 {
   background: #28a745;
   color: white;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 0.9rem;
 }
 #sendBtn:disabled { opacity: 0.5; cursor: not-allowed; }
 #sendBtn:hover:enabled { background: #1e7e34; }
@@ -158,6 +168,18 @@ h2 {
   color: #ffcc00;
   margin-top: 10px;
   text-shadow: 0 0 5px #ffcc00;
+  font-size: 0.9rem;
+}
+
+/* --- Media Queries for smaller devices --- */
+@media(max-width: 400px){
+  #chatCard { padding: 15px; }
+  h2 { font-size: 1.3rem; }
+  .connect-row input, #msgInput { font-size: 0.85rem; }
+  .connect-row button, #sendBtn, #copyBtn { font-size: 0.8rem; padding: 8px 12px; }
+  .message { font-size: 0.85rem; }
+  #status { font-size: 0.8rem; }
+  #footer { font-size: 0.8rem; }
 }
 </style>
 </head>
@@ -193,7 +215,6 @@ h2 {
 let conn;
 let cryptoKey;
 
-// Fast PeerJS server
 const peer = new Peer({
   host: '0.peerjs.com',
   port: 443,
@@ -206,14 +227,12 @@ peer.on('open', async id => {
   await generateKey();
 });
 
-// --- Encryption functions ---
 async function generateKey(){ cryptoKey = await crypto.subtle.generateKey({name:"AES-GCM", length:256}, true, ["encrypt","decrypt"]); }
 async function exportKey(){ const raw = await crypto.subtle.exportKey("raw", cryptoKey); return btoa(String.fromCharCode(...new Uint8Array(raw))); }
 async function importKey(base64){ const raw = Uint8Array.from(atob(base64), c=>c.charCodeAt(0)); cryptoKey = await crypto.subtle.importKey("raw", raw, "AES-GCM", true, ["encrypt","decrypt"]); }
 async function encryptMsg(msg){ const enc = new TextEncoder().encode(msg); const iv = crypto.getRandomValues(new Uint8Array(12)); const ciphertext = await crypto.subtle.encrypt({name:"AES-GCM", iv}, cryptoKey, enc); return {iv:Array.from(iv), data:Array.from(new Uint8Array(ciphertext))}; }
 async function decryptMsg(payload){ const iv = new Uint8Array(payload.iv); const data = new Uint8Array(payload.data); const plain = await crypto.subtle.decrypt({name:"AES-GCM", iv}, cryptoKey, data); return new TextDecoder().decode(plain); }
 
-// --- Connection functions ---
 function copyPeerId(){ navigator.clipboard.writeText(document.getElementById('myPeerId').innerText).then(()=>alert('Peer ID copied!')); }
 function setStatus(text, cls){ const s=document.getElementById('status'); s.innerText="Status: "+text; s.className=cls; }
 function addMsg(text,type){ const chat=document.getElementById('chat'); const div=document.createElement('div'); div.className = type==='me'?'message me':type==='friend'?'message friend':'message system'; div.innerHTML=text+`<div class="timestamp">${new Date().toLocaleTimeString()}</div>`; chat.appendChild(div); chat.scrollTop=chat.scrollHeight; }
