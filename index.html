@@ -34,7 +34,7 @@
     button { background: #007bff; color: white; cursor: pointer; }
     button:hover { background: #0056b3; }
     .info { font-size: 14px; color: #aaa; margin-top: 10px; }
-    #status { color: #00ff00; margin: 5px; }
+    #status { color: #00ff00; margin: 5px; font-weight: bold; }
     #copyBtn {
       margin-left: 10px;
       padding: 3px 8px;
@@ -50,14 +50,14 @@
 </head>
 <body>
   <h2>🔐 SuMe-Chat</h2>
-  <p id="myId">Generating your Peer ID...
+  <p id="myId">📌 Your Peer ID: <span id="myPeerId">Generating...</span>
     <button id="copyBtn" onclick="copyPeerId()">📋 Copy</button>
   </p>
   <div class="info">Share your ID with a friend. Enter their ID below to chat privately. Messages are encrypted 🔒</div>
 
   <input id="peerIdInput" placeholder="Friend's ID" />
   <button onclick="connectPeer()">Connect</button>
-  <p id="status"></p>
+  <p id="status">Status: Not connected</p>
 
   <div id="chat"></div>
   <input id="msgInput" placeholder="Type message..." />
@@ -102,14 +102,15 @@
       return new TextDecoder().decode(plaintext);
     }
 
+    // Initialize peer ID
     peer.on('open', id => {
-      document.getElementById("myId").innerHTML = "📌 Your Peer ID: " + id + ' <button id="copyBtn" onclick="copyPeerId()">📋 Copy</button>';
+      document.getElementById("myPeerId").innerText = id;
       generateKey();
     });
 
     // Copy Peer ID
     function copyPeerId() {
-      const peerText = document.getElementById("myId").innerText.split(": ")[1];
+      const peerText = document.getElementById("myPeerId").innerText;
       if (!peerText) return alert("Peer ID not generated yet!");
       navigator.clipboard.writeText(peerText)
         .then(() => alert("Peer ID copied!"))
@@ -120,10 +121,11 @@
     function connectPeer() {
       const peerId = document.getElementById("peerIdInput").value;
       if (!peerId.trim()) return alert("Enter a Peer ID first!");
+      document.getElementById("status").innerText = "Status: Connecting...";
       conn = peer.connect(peerId);
 
       conn.on('open', async () => {
-        document.getElementById("status").innerText = "✅ Connected to " + peerId;
+        document.getElementById("status").innerText = "Status: ✅ Connected to " + peerId;
         addMsg("✅ Connected to " + peerId);
         document.getElementById("sendBtn").disabled = false;
         conn.send({ key: await exportKey() });
@@ -132,7 +134,7 @@
       conn.on('data', handleData);
 
       conn.on('close', () => {
-        document.getElementById("status").innerText = "❌ Connection closed";
+        document.getElementById("status").innerText = "Status: ❌ Disconnected";
         addMsg("❌ Connection closed");
         document.getElementById("sendBtn").disabled = true;
       });
@@ -158,14 +160,16 @@
       }
     }
 
+    // Handle incoming connection
     peer.on('connection', c => {
       conn = c;
       conn.on('data', handleData);
       addMsg("🔔 Someone connected to you!");
-      document.getElementById("status").innerText = "✅ Connected to " + conn.peer;
+      document.getElementById("status").innerText = "Status: ✅ Connected to " + conn.peer;
       document.getElementById("sendBtn").disabled = false;
     });
 
+    // Add message to chat box
     function addMsg(text) {
       const chat = document.getElementById("chat");
       chat.innerHTML += text + "<br>";
