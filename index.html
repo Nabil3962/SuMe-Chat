@@ -65,11 +65,20 @@
 
   <script src="https://unpkg.com/peerjs/dist/peerjs.min.js"></script>
   <script>
-    const peer = new Peer();
+    // ---------------- PeerJS with STUN/TURN ----------------
+    const peer = new Peer({
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'turn:turn.anyfirewall.com:443?transport=tcp', username: 'webrtc', credential: 'webrtc' }
+        ]
+      }
+    });
+
     let conn;
     let cryptoKey;
 
-    // Encryption setup
+    // ---------------- Encryption ----------------
     async function generateKey() {
       cryptoKey = await crypto.subtle.generateKey(
         { name: "AES-GCM", length: 256 },
@@ -102,13 +111,12 @@
       return new TextDecoder().decode(plaintext);
     }
 
-    // Initialize peer ID
+    // ---------------- Peer ID ----------------
     peer.on('open', id => {
       document.getElementById("myPeerId").innerText = id;
       generateKey();
     });
 
-    // Copy Peer ID
     function copyPeerId() {
       const peerText = document.getElementById("myPeerId").innerText;
       if (!peerText) return alert("Peer ID not generated yet!");
@@ -117,7 +125,7 @@
         .catch(() => alert("Failed to copy!"));
     }
 
-    // Connect to friend
+    // ---------------- Connection ----------------
     function connectPeer() {
       const peerId = document.getElementById("peerIdInput").value;
       if (!peerId.trim()) return alert("Enter a Peer ID first!");
@@ -136,6 +144,12 @@
       conn.on('close', () => {
         document.getElementById("status").innerText = "Status: ❌ Disconnected";
         addMsg("❌ Connection closed");
+        document.getElementById("sendBtn").disabled = true;
+      });
+
+      conn.on('error', (err) => {
+        addMsg("⚠ Connection error. Please try again.");
+        document.getElementById("status").innerText = "Status: Error / Retry";
         document.getElementById("sendBtn").disabled = true;
       });
     }
@@ -160,7 +174,7 @@
       }
     }
 
-    // Handle incoming connection
+    // ---------------- Incoming connection ----------------
     peer.on('connection', c => {
       conn = c;
       conn.on('data', handleData);
@@ -169,14 +183,14 @@
       document.getElementById("sendBtn").disabled = false;
     });
 
-    // Add message to chat box
+    // ---------------- Chat message display ----------------
     function addMsg(text) {
       const chat = document.getElementById("chat");
       chat.innerHTML += text + "<br>";
       chat.scrollTop = chat.scrollHeight;
     }
 
-    // Disable send until connected
+    // Disable send button until connection
     document.getElementById("sendBtn").disabled = true;
   </script>
 </body>
