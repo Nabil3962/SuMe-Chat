@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SuMe-Chat | Secure P2P Chat</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #eee;
+      text-align: center;
+      padding: 10px;
+    }
+    h2 { color: #28a745; }
+    #chat {
+      width: 90%;
+      max-width: 500px;
+      height: 300px;
+      margin: 10px auto;
+      background: #222;
+      padding: 10px;
+      overflow-y: auto;
+      border-radius: 8px;
+      border: 1px solid #444;
+    }
+    input, button {
+      padding: 8px;
+      margin: 5px;
+      border-radius: 5px;
+      border: none;
+      font-size: 14px;
+    }
+    input { width:70%; }
+    button { background: #007bff; color: white; cursor: pointer; }
+    button:hover { background: #0056b3; }
+    .info { font-size: 14px; color: #aaa; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h2>🔐 SuMe-Chat</h2>
+  <p id="myId">Generating your Peer ID...</p>
+  <div class="info">Share your ID with a friend. Enter their ID below to chat privately. Messages are encrypted 🔒</div>
+
+  <input id="peerIdInput" placeholder="Friend's ID" />
+  <button onclick="connectPeer()">Connect</button>
+
+  <div id="chat"></div>
+  <input id="msgInput" placeholder="Type message..." />
+  <button onclick="sendMsg()">Send</button>
+
+  <script src="https://unpkg.com/peerjs/dist/peerjs.min.js"></script>
+  <script>
+    const peer = new Peer();
+    let conn;
+    let cryptoKey;
+
+    async function generateKey() {
+      cryptoKey = await crypto.subtle.generateKey(
+        { name: "AES-GCM", length: 256 },
+        true,
+        ["encrypt", "decrypt"]
+      );
+    }
+
+    async function exportKey() {
+      const raw = await crypto.subtle.exportKey("raw", cryptoKey);
+      return btoa(String.fromCharCode(...new Uint8Array(raw)));
+    }
+
+    async function importKey(base64) {
+      const raw = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+      cryptoKey = await crypto.subtle.importKey("raw", raw, "AES-GCM", true, ["encrypt", "decrypt"]);
+    }
+
+    async function encryptMsg(message) {
+      const enc = new TextEncoder().encode(message);
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, cryptoKey, enc);
+      return { iv: Array.from(iv), data: Array.from(new Uint8Array(ciphertext)) };
+    }
+
+    async function decryptMsg(payload) {
+      const iv = new Uint8Array(payload.iv);
+      const data = new Uint8Array(payload.data);
+      const plaintext = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, cryptoKey, data);
+      return new TextDecoder().decode(plaintext);
+    }
+
+    peer.on('open', id => {
+      document.getElementById("myId").innerText = "📌 Your Peer ID: " + id;
+      generateKey();
+    });
+
+    function connectPeer() {
+      const peerId = document.getElementById("peerIdInput").value;
+      if (!peerId.trim()) return alert("Enter a Peer ID first!");
+      conn = peer.connect(peerId);
+      conn.on('open', async () => {
+        addMsg("✅ Connected to " + peerId);
+        conn.send({ key: await exportKey() });
+      });
+      conn.on('data', handleData);
+    }
+
+    async function handleData(data) {
+      if (data.key) {
+        await importKey(data.key);
+        addMsg("🔐 Secure channel established!");
+      } else if (data.msg) {
+        const text = await decryptMsg(data.msg);
+        addMsg("👤 Friend: " + text);
+      }
+    }
+
+    async function sendMsg() {
+      const msg = document.getElementById("msgInput").value;
+      if (conn && msg.trim() !== "") {
+        const encrypted = await encryptMsg(msg);
+        conn.send({ msg: encrypted });
+        addMsg("🧑 Me: " + msg);
+        document.getElementById("msgInput").value = "";
+      }
+    }
+
+    peer.on('connection', c => {
+      conn = c;
+      conn.on('data', handleData);
+      addMsg("🔔 Someone connected to you!");
+    });
+
+    function addMsg(text) {
+      const chat = document.getElementById("chat");
+      chat.innerHTML += text + "<br>";
+      chat.scrollTop = chat.scrollHeight;
+    }
+  </script>
+</body>
+</html>
