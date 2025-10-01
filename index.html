@@ -4,68 +4,136 @@
   <meta charset="UTF-8">
   <title>SuMe-Chat | Secure P2P Chat</title>
   <style>
+    /* ---------------- Body ---------------- */
     body {
-      font-family: Arial, sans-serif;
-      background: #111;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #121212;
       color: #eee;
-      text-align: center;
-      padding: 10px;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
-    h2 { color: #28a745; }
-    #chat {
+    h2 { color: #28a745; margin-top: 20px; }
+
+    /* ---------------- Chat Box ---------------- */
+    #chatContainer {
       width: 90%;
       max-width: 500px;
-      height: 300px;
-      margin: 10px auto;
-      background: #222;
+      background: #1e1e1e;
+      border-radius: 12px;
+      border: 1px solid #444;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      margin: 20px 0;
+    }
+    #chat {
+      flex: 1;
       padding: 10px;
       overflow-y: auto;
-      border-radius: 8px;
-      border: 1px solid #444;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
     }
-    input, button {
+
+    /* ---------------- Chat Bubbles ---------------- */
+    .message {
+      padding: 8px 12px;
+      border-radius: 12px;
+      max-width: 80%;
+      word-wrap: break-word;
+      font-size: 14px;
+      position: relative;
+    }
+    .me {
+      background-color: #007bff;
+      color: #fff;
+      align-self: flex-end;
+      border-bottom-right-radius: 0;
+    }
+    .friend {
+      background-color: #2c2c2c;
+      color: #eee;
+      align-self: flex-start;
+      border-bottom-left-radius: 0;
+    }
+    .timestamp {
+      font-size: 10px;
+      color: #aaa;
+      margin-top: 2px;
+      text-align: right;
+    }
+
+    /* ---------------- Input & Buttons ---------------- */
+    #controls {
+      display: flex;
+      border-top: 1px solid #444;
+      padding: 5px;
+      background-color: #1a1a1a;
+    }
+    #msgInput {
+      flex: 1;
       padding: 8px;
-      margin: 5px;
-      border-radius: 5px;
+      border-radius: 8px;
       border: none;
+      outline: none;
+      font-size: 14px;
+      margin-right: 5px;
+      background-color: #2a2a2a;
+      color: #fff;
+    }
+    button {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
       font-size: 14px;
     }
-    input { width:70%; }
-    button { background: #007bff; color: white; cursor: pointer; }
-    button:hover { background: #0056b3; }
-    .info { font-size: 14px; color: #aaa; margin-top: 10px; }
-    #status { color: #00ff00; margin: 5px; font-weight: bold; }
-    #copyBtn {
-      margin-left: 10px;
-      padding: 3px 8px;
-      font-size: 12px;
-      cursor: pointer;
-      border-radius: 5px;
-      border: none;
-      background: #28a745;
-      color: white;
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    #sendBtn { background-color: #28a745; color: #fff; }
+    #sendBtn:hover:enabled { background-color: #1e7e34; }
+    #copyBtn { background-color: #007bff; color: #fff; margin-left: 10px; }
+    #copyBtn:hover { background-color: #0056b3; }
+
+    /* ---------------- Peer ID & Status ---------------- */
+    #myId, #status {
+      margin: 5px 0;
+      font-size: 14px;
     }
-    #copyBtn:hover { background: #1e7e34; }
+    #status.connecting { color: orange; }
+    #status.connected { color: #00ff00; }
+    #status.disconnected { color: red; }
   </style>
 </head>
 <body>
   <h2>🔐 SuMe-Chat</h2>
-  <p id="myId">📌 Your Peer ID: <span id="myPeerId">Generating...</span>
+
+  <!-- Peer ID & Copy -->
+  <p id="myId">Your Peer ID: <span id="myPeerId">Generating...</span>
     <button id="copyBtn" onclick="copyPeerId()">📋 Copy</button>
   </p>
-  <div class="info">Share your ID with a friend. Enter their ID below to chat privately. Messages are encrypted 🔒</div>
 
-  <input id="peerIdInput" placeholder="Friend's ID" />
+  <!-- Friend ID Input -->
+  <input id="peerIdInput" placeholder="Friend's Peer ID" style="width:90%;max-width:500px;padding:8px;border-radius:8px;border:none;margin-bottom:5px;background:#2a2a2a;color:#fff;" />
   <button onclick="connectPeer()">Connect</button>
-  <p id="status">Status: Not connected</p>
 
-  <div id="chat"></div>
-  <input id="msgInput" placeholder="Type message..." />
-  <button id="sendBtn" onclick="sendMsg()">Send</button>
+  <!-- Status -->
+  <p id="status" class="disconnected">Status: Not connected</p>
+
+  <!-- Chat Container -->
+  <div id="chatContainer">
+    <div id="chat"></div>
+    <div id="controls">
+      <input id="msgInput" placeholder="Type a message..." disabled />
+      <button id="sendBtn" onclick="sendMsg()" disabled>Send</button>
+    </div>
+  </div>
 
   <script src="https://unpkg.com/peerjs/dist/peerjs.min.js"></script>
   <script>
-    // ---------------- PeerJS with STUN/TURN ----------------
+    // ---------------- PeerJS Setup ----------------
     const peer = new Peer({
       config: {
         iceServers: [
@@ -127,71 +195,81 @@
 
     // ---------------- Connection ----------------
     function connectPeer() {
-      const peerId = document.getElementById("peerIdInput").value;
-      if (!peerId.trim()) return alert("Enter a Peer ID first!");
-      document.getElementById("status").innerText = "Status: Connecting...";
+      const peerId = document.getElementById("peerIdInput").value.trim();
+      if (!peerId) return alert("Enter a Peer ID first!");
+      setStatus("Connecting...", "connecting");
+
       conn = peer.connect(peerId);
 
       conn.on('open', async () => {
-        document.getElementById("status").innerText = "Status: ✅ Connected to " + peerId;
-        addMsg("✅ Connected to " + peerId);
+        setStatus("Connected to " + peerId, "connected");
+        addMsg("✅ Connected to " + peerId, "system");
         document.getElementById("sendBtn").disabled = false;
+        document.getElementById("msgInput").disabled = false;
         conn.send({ key: await exportKey() });
       });
 
       conn.on('data', handleData);
 
       conn.on('close', () => {
-        document.getElementById("status").innerText = "Status: ❌ Disconnected";
-        addMsg("❌ Connection closed");
+        setStatus("Disconnected", "disconnected");
+        addMsg("❌ Connection closed", "system");
         document.getElementById("sendBtn").disabled = true;
+        document.getElementById("msgInput").disabled = true;
       });
 
-      conn.on('error', (err) => {
-        addMsg("⚠ Connection error. Please try again.");
-        document.getElementById("status").innerText = "Status: Error / Retry";
-        document.getElementById("sendBtn").disabled = true;
+      conn.on('error', () => {
+        setStatus("Error / Retry", "disconnected");
+        addMsg("⚠ Connection error. Try again.", "system");
       });
     }
 
     async function handleData(data) {
       if (data.key) {
         await importKey(data.key);
-        addMsg("🔐 Secure channel established!");
+        addMsg("🔐 Secure channel established!", "system");
       } else if (data.msg) {
         const text = await decryptMsg(data.msg);
-        addMsg("👤 Friend: " + text);
+        addMsg(text, "friend");
       }
     }
 
     async function sendMsg() {
-      const msg = document.getElementById("msgInput").value;
-      if (conn && msg.trim() !== "") {
+      const msg = document.getElementById("msgInput").value.trim();
+      if (conn && msg) {
         const encrypted = await encryptMsg(msg);
         conn.send({ msg: encrypted });
-        addMsg("🧑 Me: " + msg);
+        addMsg(msg, "me");
         document.getElementById("msgInput").value = "";
       }
     }
 
-    // ---------------- Incoming connection ----------------
     peer.on('connection', c => {
       conn = c;
       conn.on('data', handleData);
-      addMsg("🔔 Someone connected to you!");
-      document.getElementById("status").innerText = "Status: ✅ Connected to " + conn.peer;
+      setStatus("Connected to " + conn.peer, "connected");
+      addMsg("🔔 Someone connected to you!", "system");
       document.getElementById("sendBtn").disabled = false;
+      document.getElementById("msgInput").disabled = false;
     });
 
-    // ---------------- Chat message display ----------------
-    function addMsg(text) {
+    // ---------------- Chat & Status Helpers ----------------
+    function addMsg(text, type) {
       const chat = document.getElementById("chat");
-      chat.innerHTML += text + "<br>";
+      const div = document.createElement("div");
+      if(type === "me") div.className = "message me";
+      else if(type === "friend") div.className = "message friend";
+      else div.className = "message system";
+      div.innerHTML = text + `<div class="timestamp">${new Date().toLocaleTimeString()}</div>`;
+      chat.appendChild(div);
       chat.scrollTop = chat.scrollHeight;
     }
 
-    // Disable send button until connection
-    document.getElementById("sendBtn").disabled = true;
+    function setStatus(text, cls) {
+      const status = document.getElementById("status");
+      status.innerText = "Status: " + text;
+      status.className = cls;
+    }
   </script>
 </body>
 </html>
