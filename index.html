@@ -34,6 +34,7 @@
     button { background: #007bff; color: white; cursor: pointer; }
     button:hover { background: #0056b3; }
     .info { font-size: 14px; color: #aaa; margin-top: 10px; }
+    #status { color: #00ff00; margin: 5px; }
   </style>
 </head>
 <body>
@@ -43,6 +44,7 @@
 
   <input id="peerIdInput" placeholder="Friend's ID" />
   <button onclick="connectPeer()">Connect</button>
+  <p id="status"></p>
 
   <div id="chat"></div>
   <input id="msgInput" placeholder="Type message..." />
@@ -95,11 +97,18 @@
       const peerId = document.getElementById("peerIdInput").value;
       if (!peerId.trim()) return alert("Enter a Peer ID first!");
       conn = peer.connect(peerId);
+
       conn.on('open', async () => {
+        document.getElementById("status").innerText = "✅ Connected to " + peerId;
         addMsg("✅ Connected to " + peerId);
         conn.send({ key: await exportKey() });
       });
+
       conn.on('data', handleData);
+      conn.on('close', () => {
+        document.getElementById("status").innerText = "❌ Connection closed";
+        addMsg("❌ Connection closed");
+      });
     }
 
     async function handleData(data) {
@@ -126,6 +135,7 @@
       conn = c;
       conn.on('data', handleData);
       addMsg("🔔 Someone connected to you!");
+      document.getElementById("status").innerText = "✅ Connected to " + conn.peer;
     });
 
     function addMsg(text) {
