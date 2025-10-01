@@ -190,103 +190,59 @@ h2 {
 
 <script src="https://unpkg.com/peerjs/dist/peerjs.min.js"></script>
 <script>
-let savedId = localStorage.getItem("peerId");
-const peer = new Peer(savedId || undefined, {
-  host: 'peerjs.com',
-  secure: true,
+let conn;
+let cryptoKey;
+
+// Fast PeerJS server
+const peer = new Peer({
+  host: '0.peerjs.com',
   port: 443,
-  path: '/',
-  config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
-});
-let conn; let cryptoKey;
-
-async function generateKey(){ cryptoKey=await crypto.subtle.generateKey({name:"AES-GCM",length:256},true,["encrypt","decrypt"]); }
-async function exportKey(){ const raw=await crypto.subtle.exportKey("raw",cryptoKey); return btoa(String.fromCharCode(...new Uint8Array(raw))); }
-async function importKey(base64){ const raw=Uint8Array.from(atob(base64),c=>c.charCodeAt(0)); cryptoKey=await crypto.subtle.importKey("raw",raw,"AES-GCM",true,["encrypt","decrypt"]); }
-async function encryptMsg(msg){ const enc=new TextEncoder().encode(msg); const iv=crypto.getRandomValues(new Uint8Array(12)); const ciphertext=await crypto.subtle.encrypt({name:"AES-GCM",iv},cryptoKey,enc); return {iv:Array.from(iv),data:Array.from(new Uint8Array(ciphertext))}; }
-async function decryptMsg(payload){ const iv=new Uint8Array(payload.iv); const data=new Uint8Array(payload.data); const plain=await crypto.subtle.decrypt({name:"AES-GCM",iv},cryptoKey,data); return new TextDecoder().decode(plain); }
-
-peer.on('open',id=>{
-  document.getElementById("myPeerId").innerText=id;
-  localStorage.setItem("peerId",id);
-  generateKey();
+  secure: true,
+  path: '/'
 });
 
-function copyPeerId(){ 
-  const peerText=document.getElementById("myPeerId").innerText; 
-  if(!peerText)return alert("Peer ID not ready!"); 
-  navigator.clipboard.writeText(peerText).then(()=>alert("Peer ID copied!")).catch(()=>alert("Failed!")); 
-}
+peer.on('open', async id => {
+  document.getElementById('myPeerId').innerText = id;
+  await generateKey();
+});
+
+// --- Encryption functions ---
+async function generateKey(){ cryptoKey = await crypto.subtle.generateKey({name:"AES-GCM", length:256}, true, ["encrypt","decrypt"]); }
+async function exportKey(){ const raw = await crypto.subtle.exportKey("raw", cryptoKey); return btoa(String.fromCharCode(...new Uint8Array(raw))); }
+async function importKey(base64){ const raw = Uint8Array.from(atob(base64), c=>c.charCodeAt(0)); cryptoKey = await crypto.subtle.importKey("raw", raw, "AES-GCM", true, ["encrypt","decrypt"]); }
+async function encryptMsg(msg){ const enc = new TextEncoder().encode(msg); const iv = crypto.getRandomValues(new Uint8Array(12)); const ciphertext = await crypto.subtle.encrypt({name:"AES-GCM", iv}, cryptoKey, enc); return {iv:Array.from(iv), data:Array.from(new Uint8Array(ciphertext))}; }
+async function decryptMsg(payload){ const iv = new Uint8Array(payload.iv); const data = new Uint8Array(payload.data); const plain = await crypto.subtle.decrypt({name:"AES-GCM", iv}, cryptoKey, data); return new TextDecoder().decode(plain); }
+
+// --- Connection functions ---
+function copyPeerId(){ navigator.clipboard.writeText(document.getElementById('myPeerId').innerText).then(()=>alert('Peer ID copied!')); }
+function setStatus(text, cls){ const s=document.getElementById('status'); s.innerText="Status: "+text; s.className=cls; }
+function addMsg(text,type){ const chat=document.getElementById('chat'); const div=document.createElement('div'); div.className = type==='me'?'message me':type==='friend'?'message friend':'message system'; div.innerHTML=text+`<div class="timestamp">${new Date().toLocaleTimeString()}</div>`; chat.appendChild(div); chat.scrollTop=chat.scrollHeight; }
 
 function connectPeer(){
-  const peerId=document.getElementById("peerIdInput").value.trim();
-  if(!peerId)return alert("Enter Peer ID!"); 
-  setStatus("Connecting...","connecting");
-  conn=peer.connect(peerId);
-  conn.on('open',async()=>{
-    setStatus("Connected to "+peerId,"connected");
-    addMsg("✅ Connected to "+peerId,"system");
-    document.getElementById("sendBtn").disabled=false;
-    document.getElementById("msgInput").disabled=false;
+  const peerId=document.getElementById('peerIdInput').value.trim();
+  if(!peerId) return alert('Enter Peer ID!');
+  setStatus('Connecting...','connecting');
+  conn = peer.connect(peerId);
+  conn.on('open', async ()=>{
+    setStatus('Connected to '+peerId,'connected');
+    addMsg('✅ Connected to '+peerId,'system');
+    document.getElementById('sendBtn').disabled=false;
+    document.getElementById('msgInput').disabled=false;
     conn.send({key:await exportKey()});
   });
-  conn.on('data',handleData);
-  conn.on('close',()=>{ 
-    setStatus("Disconnected","disconnected"); 
-    addMsg("❌ Connection closed","system"); 
-    document.getElementById("sendBtn").disabled=true; 
-    document.getElementById("msgInput").disabled=true; 
-  });
-  conn.on('error',()=>{ 
-    setStatus("Error / Retry","disconnected"); 
-    addMsg("⚠ Connection error. Try again.","system"); 
-  });
+  conn.on('data', handleData);
+  conn.on('close', ()=>{ setStatus('Disconnected','disconnected'); addMsg('❌ Connection closed','system'); document.getElementById('sendBtn').disabled=true; document.getElementById('msgInput').disabled=true; });
+  conn.on('error', ()=>{ setStatus('Error / Retry','disconnected'); addMsg('⚠ Connection error. Try again.','system'); });
 }
 
 async function handleData(data){
-  if(data.key){ 
-    await importKey(data.key); 
-    addMsg("🔐 Secure channel established!","system"); 
-  } else if(data.msg){ 
-    const text=await decryptMsg(data.msg); 
-    addMsg(text,"friend"); 
-  }
+  if(data.key){ await importKey(data.key); addMsg('🔐 Secure channel established!','system'); }
+  else if(data.msg){ const text=await decryptMsg(data.msg); addMsg(text,'friend'); }
 }
 
-async function sendMsg(){ 
-  const msg=document.getElementById("msgInput").value.trim(); 
-  if(conn && msg){ 
-    const encrypted=await encryptMsg(msg); 
-    conn.send({msg:encrypted}); 
-    addMsg(msg,"me"); 
-    document.getElementById("msgInput").value=""; 
-  } 
-}
+async function sendMsg(){ const msg=document.getElementById('msgInput').value.trim(); if(conn && msg){ const encrypted=await encryptMsg(msg); conn.send({msg:encrypted}); addMsg(msg,'me'); document.getElementById('msgInput').value=''; } }
 
-peer.on('connection',c=>{
-  conn=c; 
-  conn.on('data',handleData); 
-  setStatus("Connected to "+conn.peer,"connected"); 
-  addMsg("🔔 Someone connected to you!","system"); 
-  document.getElementById("sendBtn").disabled=false; 
-  document.getElementById("msgInput").disabled=false; 
-});
-
-function addMsg(text,type){ 
-  const chat=document.getElementById("chat"); 
-  const div=document.createElement("div"); 
-  if(type==="me") div.className="message me"; 
-  else if(type==="friend") div.className="message friend"; 
-  else div.className="message system"; 
-  div.innerHTML=text+`<div class="timestamp">${new Date().toLocaleTimeString()}</div>`; 
-  chat.appendChild(div); 
-  chat.scrollTop=chat.scrollHeight; 
-}
-function setStatus(text,cls){ 
-  const status=document.getElementById("status"); 
-  status.innerText="Status: "+text; 
-  status.className=cls; 
-}
+peer.on('connection', c=>{ conn=c; conn.on('data', handleData); setStatus('Connected to '+conn.peer,'connected'); addMsg('🔔 Someone connected to you!','system'); document.getElementById('sendBtn').disabled=false; document.getElementById('msgInput').disabled=false; });
 </script>
 </body>
 </html>
