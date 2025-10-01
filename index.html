@@ -35,11 +35,24 @@
     button:hover { background: #0056b3; }
     .info { font-size: 14px; color: #aaa; margin-top: 10px; }
     #status { color: #00ff00; margin: 5px; }
+    #copyBtn {
+      margin-left: 10px;
+      padding: 3px 8px;
+      font-size: 12px;
+      cursor: pointer;
+      border-radius: 5px;
+      border: none;
+      background: #28a745;
+      color: white;
+    }
+    #copyBtn:hover { background: #1e7e34; }
   </style>
 </head>
 <body>
   <h2>🔐 SuMe-Chat</h2>
-  <p id="myId">Generating your Peer ID...</p>
+  <p id="myId">Generating your Peer ID...
+    <button id="copyBtn" onclick="copyPeerId()">📋 Copy</button>
+  </p>
   <div class="info">Share your ID with a friend. Enter their ID below to chat privately. Messages are encrypted 🔒</div>
 
   <input id="peerIdInput" placeholder="Friend's ID" />
@@ -48,7 +61,7 @@
 
   <div id="chat"></div>
   <input id="msgInput" placeholder="Type message..." />
-  <button onclick="sendMsg()">Send</button>
+  <button id="sendBtn" onclick="sendMsg()">Send</button>
 
   <script src="https://unpkg.com/peerjs/dist/peerjs.min.js"></script>
   <script>
@@ -56,6 +69,7 @@
     let conn;
     let cryptoKey;
 
+    // Encryption setup
     async function generateKey() {
       cryptoKey = await crypto.subtle.generateKey(
         { name: "AES-GCM", length: 256 },
@@ -89,10 +103,20 @@
     }
 
     peer.on('open', id => {
-      document.getElementById("myId").innerText = "📌 Your Peer ID: " + id;
+      document.getElementById("myId").innerHTML = "📌 Your Peer ID: " + id + ' <button id="copyBtn" onclick="copyPeerId()">📋 Copy</button>';
       generateKey();
     });
 
+    // Copy Peer ID
+    function copyPeerId() {
+      const peerText = document.getElementById("myId").innerText.split(": ")[1];
+      if (!peerText) return alert("Peer ID not generated yet!");
+      navigator.clipboard.writeText(peerText)
+        .then(() => alert("Peer ID copied!"))
+        .catch(() => alert("Failed to copy!"));
+    }
+
+    // Connect to friend
     function connectPeer() {
       const peerId = document.getElementById("peerIdInput").value;
       if (!peerId.trim()) return alert("Enter a Peer ID first!");
@@ -101,13 +125,16 @@
       conn.on('open', async () => {
         document.getElementById("status").innerText = "✅ Connected to " + peerId;
         addMsg("✅ Connected to " + peerId);
+        document.getElementById("sendBtn").disabled = false;
         conn.send({ key: await exportKey() });
       });
 
       conn.on('data', handleData);
+
       conn.on('close', () => {
         document.getElementById("status").innerText = "❌ Connection closed";
         addMsg("❌ Connection closed");
+        document.getElementById("sendBtn").disabled = true;
       });
     }
 
@@ -136,6 +163,7 @@
       conn.on('data', handleData);
       addMsg("🔔 Someone connected to you!");
       document.getElementById("status").innerText = "✅ Connected to " + conn.peer;
+      document.getElementById("sendBtn").disabled = false;
     });
 
     function addMsg(text) {
@@ -143,6 +171,9 @@
       chat.innerHTML += text + "<br>";
       chat.scrollTop = chat.scrollHeight;
     }
+
+    // Disable send until connected
+    document.getElementById("sendBtn").disabled = true;
   </script>
 </body>
 </html>
