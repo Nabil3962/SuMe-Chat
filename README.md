@@ -19,11 +19,3 @@ Chat directly between two browsers — no server stores your messages.
 3. Share your Peer ID with your friend.  
 4. Enter your friend's ID in the **Friend's ID** box and click **Connect**.  
 5. Start chatting securely.  
-
-
-#Optional: Make It Live
-
-1. Push the repo to GitHub.  
-2. Enable **GitHub Pages**:  
-   - Settings → Pages → Source: `main` branch → Folder: `/ (root)` → Save  
-3. Access live:  
