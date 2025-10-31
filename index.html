@@ -101,7 +101,7 @@ h2 {
   flex: 1;
   display: flex;
   flex-direction: column;
-  height: 550px;  /* desktop default */
+  height: 550px;
   background: #1e1e1e;
   border-radius: 20px;
   overflow: hidden;
@@ -111,11 +111,11 @@ h2 {
 #chat {
   flex: 1;
   padding: 18px;
-  overflow-y: auto;  /* ✅ scrollable messages */
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  scroll-behavior: smooth; /* ✅ smooth scrolling */
+  scroll-behavior: smooth;
 }
 
 .message {
@@ -133,13 +133,13 @@ h2 {
 .timestamp { font-size: 0.75rem; color: #aaa; margin-top: 2px; text-align: right; }
 
 #controls {
-  flex-shrink: 0;     /* ✅ keeps input fixed at bottom */
+  flex-shrink: 0;
   display: flex;
   gap: 12px;
   padding: 12px;
   background: #2e2e2e;
   border-top: 1px solid #333;
-  border-radius: 0 0 15px 15px; /* rounded bottom only */
+  border-radius: 0 0 15px 15px;
 }
 #msgInput {
   flex: 1 1 200px;
@@ -172,7 +172,6 @@ h2 {
   font-size: 1rem;
 }
 
-/* Media Queries for smaller devices */
 @media(max-width: 480px){
   #chatCard { padding: 15px; }
   h2 { font-size: 1.4rem; }
@@ -181,8 +180,7 @@ h2 {
   .message { font-size: 0.85rem; }
   #status { font-size: 0.8rem; }
   #footer { font-size: 0.85rem; }
-
-  #chatContainer { height: 80vh; } /* ✅ fills most of screen */
+  #chatContainer { height: 80vh; }
 }
 </style>
 </head>
@@ -218,11 +216,23 @@ h2 {
 let conn;
 let cryptoKey;
 
+// ✅ Fixed PeerJS setup with STUN + TURN servers
 const peer = new Peer({
   host: '0.peerjs.com',
   port: 443,
   secure: true,
-  path: '/'
+  path: '/',
+  config: {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      {
+        urls: 'turn:relay1.expressturn.com:3478',
+        username: 'efYQXKAB2wxWtdjKOf',
+        credential: 'W9qTXeDtvz7cOZZv'
+      }
+    ]
+  }
 });
 
 peer.on('open', async id => {
@@ -230,49 +240,45 @@ peer.on('open', async id => {
   await generateKey();
 });
 
-async function generateKey(){ 
-  cryptoKey = await crypto.subtle.generateKey({name:"AES-GCM", length:256}, true, ["encrypt","decrypt"]); 
+async function generateKey(){
+  cryptoKey = await crypto.subtle.generateKey({name:"AES-GCM", length:256}, true, ["encrypt","decrypt"]);
 }
-async function exportKey(){ 
-  const raw = await crypto.subtle.exportKey("raw", cryptoKey); 
-  return btoa(String.fromCharCode(...new Uint8Array(raw))); 
+async function exportKey(){
+  const raw = await crypto.subtle.exportKey("raw", cryptoKey);
+  return btoa(String.fromCharCode(...new Uint8Array(raw)));
 }
-async function importKey(base64){ 
-  const raw = Uint8Array.from(atob(base64), c=>c.charCodeAt(0)); 
-  cryptoKey = await crypto.subtle.importKey("raw", raw, "AES-GCM", true, ["encrypt","decrypt"]); 
+async function importKey(base64){
+  const raw = Uint8Array.from(atob(base64), c=>c.charCodeAt(0));
+  cryptoKey = await crypto.subtle.importKey("raw", raw, "AES-GCM", true, ["encrypt","decrypt"]);
 }
-async function encryptMsg(msg){ 
-  const enc = new TextEncoder().encode(msg); 
-  const iv = crypto.getRandomValues(new Uint8Array(12)); 
-  const ciphertext = await crypto.subtle.encrypt({name:"AES-GCM", iv}, cryptoKey, enc); 
-  return {iv:Array.from(iv), data:Array.from(new Uint8Array(ciphertext))}; 
+async function encryptMsg(msg){
+  const enc = new TextEncoder().encode(msg);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ciphertext = await crypto.subtle.encrypt({name:"AES-GCM", iv}, cryptoKey, enc);
+  return {iv:Array.from(iv), data:Array.from(new Uint8Array(ciphertext))};
 }
-async function decryptMsg(payload){ 
-  const iv = new Uint8Array(payload.iv); 
-  const data = new Uint8Array(payload.data); 
-  const plain = await crypto.subtle.decrypt({name:"AES-GCM", iv}, cryptoKey, data); 
-  return new TextDecoder().decode(plain); 
+async function decryptMsg(payload){
+  const iv = new Uint8Array(payload.iv);
+  const data = new Uint8Array(payload.data);
+  const plain = await crypto.subtle.decrypt({name:"AES-GCM", iv}, cryptoKey, data);
+  return new TextDecoder().decode(plain);
 }
 
-function copyPeerId(){ 
-  navigator.clipboard.writeText(document.getElementById('myPeerId').innerText).then(()=>alert('Peer ID copied!')); 
+function copyPeerId(){
+  navigator.clipboard.writeText(document.getElementById('myPeerId').innerText).then(()=>alert('Peer ID copied!'));
 }
-function setStatus(text, cls){ 
-  const s=document.getElementById('status'); 
-  s.innerText="Status: "+text; 
-  s.className=cls; 
+function setStatus(text, cls){
+  const s=document.getElementById('status');
+  s.innerText="Status: "+text;
+  s.className=cls;
 }
-function addMsg(text,type){ 
-  const chat=document.getElementById('chat'); 
-  const div=document.createElement('div'); 
-  div.className = type==='me'?'message me':type==='friend'?'message friend':'message system'; 
-  div.innerHTML=text+`<div class="timestamp">${new Date().toLocaleTimeString()}</div>`; 
-  chat.appendChild(div); 
-
-  // ✅ Auto-scroll smoothly to latest message
-  setTimeout(() => {
-    chat.scrollTop = chat.scrollHeight;
-  }, 50);
+function addMsg(text,type){
+  const chat=document.getElementById('chat');
+  const div=document.createElement('div');
+  div.className = type==='me'?'message me':type==='friend'?'message friend':'message system';
+  div.innerHTML=text+`<div class="timestamp">${new Date().toLocaleTimeString()}</div>`;
+  chat.appendChild(div);
+  setTimeout(() => { chat.scrollTop = chat.scrollHeight; }, 50);
 }
 
 function connectPeer(){
@@ -289,45 +295,45 @@ function connectPeer(){
   });
   conn.on('data', handleData);
   conn.on('close', ()=>{
-    setStatus('Disconnected','disconnected'); 
-    addMsg('❌ Connection closed','system'); 
-    document.getElementById('sendBtn').disabled=true; 
-    document.getElementById('msgInput').disabled=true; 
+    setStatus('Disconnected','disconnected');
+    addMsg('❌ Connection closed','system');
+    document.getElementById('sendBtn').disabled=true;
+    document.getElementById('msgInput').disabled=true;
   });
   conn.on('error', ()=>{
-    setStatus('Error / Retry','disconnected'); 
-    addMsg('⚠ Connection error. Try again.','system'); 
+    setStatus('Error / Retry','disconnected');
+    addMsg('⚠ Connection error. Try again.','system');
   });
 }
 
 async function handleData(data){
-  if(data.key){ 
-    await importKey(data.key); 
-    addMsg('🔐 Secure channel established!','system'); 
+  if(data.key){
+    await importKey(data.key);
+    addMsg('🔐 Secure channel established!','system');
   }
-  else if(data.msg){ 
-    const text=await decryptMsg(data.msg); 
-    addMsg(text,'friend'); 
+  else if(data.msg){
+    const text=await decryptMsg(data.msg);
+    addMsg(text,'friend');
   }
 }
 
-async function sendMsg(){ 
-  const msg=document.getElementById('msgInput').value.trim(); 
-  if(conn && msg){ 
-    const encrypted=await encryptMsg(msg); 
-    conn.send({msg:encrypted}); 
-    addMsg(msg,'me'); 
-    document.getElementById('msgInput').value=''; 
-  } 
+async function sendMsg(){
+  const msg=document.getElementById('msgInput').value.trim();
+  if(conn && msg){
+    const encrypted=await encryptMsg(msg);
+    conn.send({msg:encrypted});
+    addMsg(msg,'me');
+    document.getElementById('msgInput').value='';
+  }
 }
 
 peer.on('connection', c=>{
-  conn=c; 
-  conn.on('data', handleData); 
-  setStatus('Connected to '+conn.peer,'connected'); 
-  addMsg('🔔 Someone connected to you!','system'); 
-  document.getElementById('sendBtn').disabled=false; 
-  document.getElementById('msgInput').disabled=false; 
+  conn=c;
+  conn.on('data', handleData);
+  setStatus('Connected to '+conn.peer,'connected');
+  addMsg('🔔 Someone connected to you!','system');
+  document.getElementById('sendBtn').disabled=false;
+  document.getElementById('msgInput').disabled=false;
 });
 </script>
 </body>
