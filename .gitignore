@@ -6,3 +6,19 @@ node_modules/
 
 # Windows system files
 Thumbs.db
+Desktop.ini
+
+# VSCode settings
+.vscode/
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Backup files
+*.bak
+*.swp
+*~
