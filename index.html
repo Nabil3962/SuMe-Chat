@@ -5,214 +5,70 @@
 <title>SuMe-Chat | Secure P2P Chat</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
+/* ------------------------ UI STYLES ------------------------ */
 * { box-sizing: border-box; }
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background-color: #1b1b1b;
   color: #eee;
   margin: 0;
-  padding: 0;
+  padding: 20px 10px;
   display: flex;
   justify-content: center;
   align-items: flex-start;
   min-height: 100vh;
-  padding: 20px 10px;
 }
-
 #chatCard {
-  width: 100%;
-  max-width: 700px;
-  background: #262626;
-  border-radius: 20px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.5);
-  padding: 25px;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
+  width: 100%; max-width: 700px; background: #262626;
+  border-radius: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+  padding: 25px; display: flex; flex-direction: column; gap: 15px;
 }
-
-h2 {
-  color: #28a745;
-  text-align: center;
-  margin: 0 0 15px 0;
-  font-weight: 600;
-  font-size: 1.8rem;
-}
-
+h2 { color: #28a745; text-align: center; margin: 0 0 15px 0; font-weight: 600; font-size: 1.8rem; }
 #myId {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #2e2e2e;
-  padding: 12px 15px;
-  border-radius: 15px;
-  font-size: 1rem;
-  flex-wrap: wrap;
+  display: flex; justify-content: space-between; align-items: center;
+  background: #2e2e2e; padding: 12px 15px; border-radius: 15px; font-size: 1rem; flex-wrap: wrap;
 }
-#copyBtn {
-  padding: 6px 12px;
-  border: none;
-  border-radius: 12px;
-  background: #28a745;
-  color: white;
-  cursor: pointer;
-  font-size: 0.85rem;
-  margin-top: 5px;
+#copyBtn, #btConnectBtn, .connect-row button, #sendBtn {
+  padding: 8px 12px; border-radius: 12px; border: none; cursor: pointer; color: #fff; font-size: 0.85rem;
 }
-#copyBtn:hover { background: #1e7e34; }
-
-.connect-row {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.connect-row input {
-  flex: 1 1 250px;
-  padding: 12px;
-  border-radius: 15px;
-  border: none;
-  background: #2e2e2e;
-  color: #fff;
-  font-size: 0.95rem;
-}
-.connect-row button {
-  padding: 12px 18px;
-  border-radius: 15px;
-  border: none;
-  background: #28a745;
-  color: white;
-  cursor: pointer;
-  font-size: 0.95rem;
-}
-.connect-row button:hover { background: #1e7e34; }
-
-#status {
-  text-align: center;
-  font-size: 0.9rem;
-  padding: 6px;
-  border-radius: 12px;
-  word-break: break-word;
-}
-#status.connecting { color: orange; }
-#status.connected { color: #00ff00; }
-#status.disconnected { color: red; }
-
-#chatContainer {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  height: 550px;
-  background: #1e1e1e;
-  border-radius: 20px;
-  overflow: hidden;
-  box-shadow: inset 0 0 10px rgba(0,0,0,0.4);
-}
-
-#chat {
-  flex: 1;
-  padding: 18px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  scroll-behavior: smooth;
-}
-
-.message {
-  padding: 10px 18px;
-  border-radius: 20px;
-  max-width: 75%;
-  word-wrap: break-word;
-  font-size: 0.95rem;
-  position: relative;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-}
-.me { background-color: #28a745; color: white; align-self: flex-end; border-bottom-right-radius: 5px; }
-.friend { background-color: #2e2e2e; color: #fff; align-self: flex-start; border-bottom-left-radius: 5px; }
-.system { background-color: #444; color: #ffcc00; align-self: center; max-width: 90%; text-align: center; font-weight: bold; }
-.timestamp { font-size: 0.75rem; color: #aaa; margin-top: 2px; text-align: right; }
-
-#controls {
-  flex-shrink: 0;
-  display: flex;
-  gap: 12px;
-  padding: 12px;
-  background: #2e2e2e;
-  border-top: 1px solid #333;
-  border-radius: 0 0 15px 15px;
-}
-#msgInput {
-  flex: 1 1 200px;
-  padding: 12px;
-  border-radius: 15px;
-  border: none;
-  outline: none;
-  font-size: 0.95rem;
-  background: #1e1e1e;
-  color: #fff;
-}
-#sendBtn {
-  padding: 12px 18px;
-  border-radius: 15px;
-  border: none;
-  background: #28a745;
-  color: white;
-  cursor: pointer;
-  font-size: 0.95rem;
-}
-#sendBtn:disabled { opacity: 0.5; cursor: not-allowed; }
-#sendBtn:hover:enabled { background: #1e7e34; }
-
-#footer {
-  text-align: center;
-  font-weight: bold;
-  color: #ffcc00;
-  margin-top: 12px;
-  text-shadow: 0 0 5px #ffcc00;
-  font-size: 1rem;
-}
-
-#btConnectBtn {
-  padding: 8px 12px;
-  border-radius: 12px;
-  border: none;
-  background: #007bff;
-  color: white;
-  cursor: pointer;
-  font-size: 0.85rem;
-  margin-top: 5px;
-}
-#btConnectBtn:hover { background: #0056b3; }
-
-@media(max-width: 480px){
-  #chatCard { padding: 15px; }
-  h2 { font-size: 1.4rem; }
-  .connect-row input, #msgInput { font-size: 0.85rem; padding: 10px; }
-  .connect-row button, #sendBtn, #copyBtn { font-size: 0.8rem; padding: 8px 12px; }
-  .message { font-size: 0.85rem; }
-  #status { font-size: 0.8rem; }
-  #footer { font-size: 0.85rem; }
-  #chatContainer { height: 80vh; }
+#copyBtn { background: #28a745; margin-top:5px; } #copyBtn:hover { background:#1e7e34; }
+#btConnectBtn { background:#007bff; margin-top:5px; } #btConnectBtn:hover { background:#0056b3; }
+.connect-row { display:flex; gap:12px; flex-wrap:wrap; }
+.connect-row input { flex:1 1 250px; padding:12px; border-radius:15px; border:none; background:#2e2e2e; color:#fff; font-size:0.95rem; }
+.connect-row button { background:#28a745; } .connect-row button:hover { background:#1e7e34; }
+#status { text-align:center; font-size:0.9rem; padding:6px; border-radius:12px; word-break:break-word; }
+#status.connecting{ color:orange; } #status.connected{ color:#00ff00; } #status.disconnected{ color:red; }
+#chatContainer { flex:1; display:flex; flex-direction:column; height:550px; background:#1e1e1e; border-radius:20px; overflow:hidden; box-shadow:inset 0 0 10px rgba(0,0,0,0.4); }
+#chat { flex:1; padding:18px; overflow-y:auto; display:flex; flex-direction:column; gap:10px; scroll-behavior:smooth; }
+.message { padding:10px 18px; border-radius:20px; max-width:75%; word-wrap:break-word; font-size:0.95rem; position:relative; box-shadow:0 2px 6px rgba(0,0,0,0.3); }
+.me{ background:#28a745; color:#fff; align-self:flex-end; border-bottom-right-radius:5px; }
+.friend{ background:#2e2e2e; color:#fff; align-self:flex-start; border-bottom-left-radius:5px; }
+.system{ background:#444; color:#ffcc00; align-self:center; max-width:90%; text-align:center; font-weight:bold; }
+.timestamp{ font-size:0.75rem; color:#aaa; margin-top:2px; text-align:right; }
+#controls{ flex-shrink:0; display:flex; gap:12px; padding:12px; background:#2e2e2e; border-top:1px solid #333; border-radius:0 0 15px 15px; }
+#msgInput{ flex:1 1 200px; padding:12px; border-radius:15px; border:none; outline:none; font-size:0.95rem; background:#1e1e1e; color:#fff; }
+#sendBtn{ background:#28a745; } #sendBtn:disabled{ opacity:0.5; cursor:not-allowed; } #sendBtn:hover:enabled{ background:#1e7e34; }
+#footer{text-align:center; font-weight:bold; color:#ffcc00; margin-top:12px; text-shadow:0 0 5px #ffcc00; font-size:1rem; }
+@media(max-width:480px){
+  #chatCard{ padding:15px; } h2{ font-size:1.4rem; } .connect-row input, #msgInput{ font-size:0.85rem; padding:10px; }
+  .connect-row button, #sendBtn, #copyBtn{ font-size:0.8rem; padding:8px 12px; } .message{ font-size:0.85rem; }
+  #status{ font-size:0.8rem; } #footer{ font-size:0.85rem; } #chatContainer{ height:80vh; }
 }
 </style>
 </head>
 <body>
 <div id="chatCard">
   <h2>🔐 SuMe-Chat</h2>
-
   <div id="myId">
     <span>Your Peer ID: <span id="myPeerId">Generating...</span></span>
     <button id="copyBtn" onclick="copyPeerId()">📋 Copy</button>
     <button id="btConnectBtn" onclick="connectBluetooth()">🔵 Connect via Bluetooth</button>
   </div>
-
   <div class="connect-row">
     <input id="peerIdInput" placeholder="Friend's Peer ID" />
     <button onclick="connectPeer()">Connect</button>
   </div>
-
   <div id="status" class="disconnected">Status: Not connected</div>
-
   <div id="chatContainer">
     <div id="chat"></div>
     <div id="controls">
@@ -220,208 +76,92 @@ h2 {
       <button id="sendBtn" onclick="sendMsg()" disabled>Send</button>
     </div>
   </div>
-
   <div id="footer">Created by Suhail Al Mehedi</div>
 </div>
 
 <script src="https://unpkg.com/peerjs/dist/peerjs.min.js"></script>
 <script>
 /* ------------------------ CORE VARIABLES ------------------------ */
-let conn, cryptoKey;
-let onlineMode = navigator.onLine;
-let offlineQueue = [];
-let btDevice, btServer, btCharacteristic;
+let conn, cryptoKey, btDevice, btServer, btCharacteristic;
+let onlineMode = navigator.onLine, offlineQueue = [];
 
-/* ------------------------ PEERJS (Online) ------------------------ */
-// Use static peer ID for reliability
-const myPeerId = localStorage.getItem('myPeerId') || 'user' + Math.floor(Math.random()*10000);
+/* ------------------------ PEER ID (16-char ****-****-****-****) ------------------------ */
+function generatePeerId() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let id = '';
+  for (let i=0;i<16;i++){ id += chars.charAt(Math.floor(Math.random()*chars.length)); }
+  return id.match(/.{1,4}/g).join('-');
+}
+const myPeerId = localStorage.getItem('myPeerId') || generatePeerId();
 localStorage.setItem('myPeerId', myPeerId);
+document.getElementById('myPeerId').innerText = myPeerId;
 
+/* ------------------------ PEERJS CONNECTION ------------------------ */
+const hosts = [
+  { host:'0.peerjs.com', port:443, secure:true },
+  { host:'peerjs.com', port:443, secure:true },
+  { host:'peerjs-server.herokuapp.com', port:443, secure:true }
+];
 const peer = new Peer(myPeerId, {
-  host: '0.peerjs.com',
-  port: 443,
-  secure: true,
-  path: '/',
-  debug: 1,
-  config: {
-    iceServers: [
-      { urls: ['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302'] },
-      {
-        urls: 'turn:relay1.expressturn.com:3478',
-        username: 'efYQXKAB2wxWtdjKOf',
-        credential: 'W9qTXeDtvz7cOZZv'
-      }
+  host: hosts[0].host, port: hosts[0].port, secure: hosts[0].secure, path:'/',
+  debug:1,
+  config:{
+    iceServers:[
+      { urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302'] },
+      { urls:'turn:relay1.expressturn.com:3478', username:'efYQXKAB2wxWtdjKOf', credential:'W9qTXeDtvz7cOZZv' }
     ],
-    sdpSemantics: 'unified-plan'
+    sdpSemantics:'unified-plan'
   }
-});
-
-peer.on('open', async id=>{
-  document.getElementById('myPeerId').innerText=id;
-  await generateKey();
-  setStatus('Ready to connect','disconnected');
-});
-
-peer.on('error', err=>{
-  console.error('PeerJS Error:', err);
-  setStatus('Error: '+err.type,'disconnected');
-  addMsg('⚠ '+err.message,'system');
 });
 
 /* ------------------------ ENCRYPTION ------------------------ */
-async function generateKey(){
-  cryptoKey = await crypto.subtle.generateKey({name:"AES-GCM",length:256},true,["encrypt","decrypt"]);
-}
-
-async function exportKey(){
-  const raw = await crypto.subtle.exportKey("raw",cryptoKey);
-  return btoa(String.fromCharCode(...new Uint8Array(raw)));
-}
-
-async function importKey(base64){
-  try{
-    const raw = Uint8Array.from(atob(base64),c=>c.charCodeAt(0));
-    cryptoKey = await crypto.subtle.importKey("raw",raw,"AES-GCM",true,["encrypt","decrypt"]);
-  }catch(e){ addMsg("❌ Key exchange failed!", "system"); console.error(e); }
-}
-
-async function encryptMsg(msg){
-  const enc = new TextEncoder().encode(msg);
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const ciphertext = await crypto.subtle.encrypt({name:"AES-GCM",iv},cryptoKey,enc);
-  return {iv:Array.from(iv),data:Array.from(new Uint8Array(ciphertext))};
-}
-
-async function decryptMsg(payload){
-  try{
-    const iv=new Uint8Array(payload.iv);
-    const data=new Uint8Array(payload.data);
-    const plain=await crypto.subtle.decrypt({name:"AES-GCM",iv},cryptoKey,data);
-    return new TextDecoder().decode(plain);
-  }catch{
-    addMsg("⚠ Decryption failed. Possibly tampered message.","system");
-    return null;
-  }
-}
+async function generateKey(){ cryptoKey = await crypto.subtle.generateKey({name:"AES-GCM",length:256},true,["encrypt","decrypt"]); }
+async function exportKey(){ const raw=await crypto.subtle.exportKey("raw",cryptoKey); return btoa(String.fromCharCode(...new Uint8Array(raw))); }
+async function importKey(base64){ try{ const raw=Uint8Array.from(atob(base64),c=>c.charCodeAt(0)); cryptoKey=await crypto.subtle.importKey("raw",raw,"AES-GCM",true,["encrypt","decrypt"]); }catch(e){ addMsg("❌ Key exchange failed!","system"); console.error(e); } }
+async function encryptMsg(msg){ const enc=new TextEncoder().encode(msg); const iv=crypto.getRandomValues(new Uint8Array(12)); const ciphertext=await crypto.subtle.encrypt({name:"AES-GCM",iv},cryptoKey,enc); return {iv:Array.from(iv),data:Array.from(new Uint8Array(ciphertext))}; }
+async function decryptMsg(payload){ try{ const iv=new Uint8Array(payload.iv); const data=new Uint8Array(payload.data); const plain=await crypto.subtle.decrypt({name:"AES-GCM",iv},cryptoKey,data); return new TextDecoder().decode(plain); }catch{ addMsg("⚠ Decryption failed. Possibly tampered message.","system"); return null; } }
 
 /* ------------------------ UTILITIES ------------------------ */
 function sanitize(str){ return str.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
-
-function copyPeerId(){
-  const id=document.getElementById('myPeerId').innerText;
-  if(id && id!=='Generating...'){ navigator.clipboard.writeText(id).then(()=>alert('Peer ID copied!')).catch(()=>alert('Clipboard error!')); }
-}
-
+function copyPeerId(){ const id=document.getElementById('myPeerId').innerText; if(id && id!=='Generating...'){ navigator.clipboard.writeText(id).then(()=>alert('Peer ID copied!')).catch(()=>alert('Clipboard error!')); } }
 function setStatus(text,cls){ const s=document.getElementById('status'); s.innerText="Status: "+text; s.className=cls; }
-
-function addMsg(text,type){
-  const chat=document.getElementById('chat');
-  const div=document.createElement('div');
-  div.className= type==='me'?'message me':type==='friend'?'message friend':'message system';
-  div.innerHTML=sanitize(text)+`<div class="timestamp">${new Date().toLocaleTimeString()}</div>`;
-  chat.appendChild(div);
-  chat.scrollTo({top:chat.scrollHeight,behavior:'smooth'});
-}
+function addMsg(text,type){ const chat=document.getElementById('chat'); const div=document.createElement('div'); div.className= type==='me'?'message me':type==='friend'?'message friend':'message system'; div.innerHTML=sanitize(text)+`<div class="timestamp">${new Date().toLocaleTimeString()}</div>`; chat.appendChild(div); chat.scrollTo({top:chat.scrollHeight,behavior:'smooth'}); }
 
 /* ------------------------ ONLINE CONNECTION ------------------------ */
 function connectPeer(){
-  const peerId=document.getElementById('peerIdInput').value.trim();
-  if(!peerId) return alert('Enter Peer ID!');
-  if(peerId===peer.id) return alert('You cannot connect to yourself!');
-  setStatus('Connecting...','connecting');
-  conn = peer.connect(peerId,{reliable:true});
-  
-  // Timeout if peer unreachable
-  const timeout = setTimeout(()=>{
-      if(!conn.open){ setStatus('Failed to connect','disconnected'); addMsg('⚠ Connection timeout. Peer may be offline.','system'); }
-  },10000);
-
-  setupConnectionEvents(conn, timeout);
+  const peerId=document.getElementById('peerIdInput').value.trim(); if(!peerId) return alert('Enter Peer ID!'); if(peerId===peer.id) return alert('Cannot connect to yourself!');
+  setStatus('Connecting...','connecting'); conn = peer.connect(peerId,{reliable:true});
+  const timeout=setTimeout(()=>{ if(!conn.open){ setStatus('Failed to connect','disconnected'); addMsg('⚠ Connection timeout. Peer may be offline.','system'); } },10000);
+  setupConnectionEvents(conn,timeout);
 }
 
-function setupConnectionEvents(c, timeout=null){
-  c.on('open', async ()=>{
-    if(timeout) clearTimeout(timeout);
-    setStatus('Connected to '+c.peer,'connected');
-    addMsg('✅ Connected to '+c.peer,'system');
-    enableChat(true);
-    try{ c.send({key:await exportKey()}); } catch(e){ addMsg('⚠ Could not send key.','system'); console.error(e); }
-  });
+function setupConnectionEvents(c,timeout=null){
+  c.on('open', async ()=>{ if(timeout) clearTimeout(timeout); setStatus('Connected to '+c.peer,'connected'); addMsg('✅ Connected to '+c.peer,'system'); enableChat(true); try{ c.send({key:await exportKey()}); }catch(e){ addMsg('⚠ Could not send key.','system'); console.error(e); } });
   c.on('data', handleData);
-  c.on('close', ()=>{
-    setStatus('Disconnected','disconnected'); addMsg('❌ Connection closed','system'); enableChat(false);
-  });
-  c.on('error', err=>{
-    setStatus('Error: '+err.type,'disconnected'); addMsg('⚠ Connection error.','system'); console.error(err);
-  });
+  c.on('close', ()=>{ setStatus('Disconnected','disconnected'); addMsg('❌ Connection closed','system'); enableChat(false); });
+  c.on('error', err=>{ setStatus('Error: '+err.type,'disconnected'); addMsg('⚠ Connection error.','system'); console.error(err); });
 }
 
-function enableChat(enabled){
-  document.getElementById('sendBtn').disabled=!enabled;
-  document.getElementById('msgInput').disabled=!enabled;
-}
+function enableChat(enabled){ document.getElementById('sendBtn').disabled=!enabled; document.getElementById('msgInput').disabled=!enabled; }
+
+peer.on('open', async ()=>{ await generateKey(); setStatus('Ready to connect','disconnected'); });
+peer.on('error', err=>{ console.error('PeerJS Error:', err); setStatus('Error: '+err.type,'disconnected'); addMsg('⚠ '+err.message,'system'); });
 
 peer.on('connection', c=>{
   if(conn && conn.open){ c.close(); return; }
-  conn=c;
-  setupConnectionEvents(conn);
-  setStatus('Connected to '+conn.peer,'connected');
-  addMsg('🔔 Someone connected to you!','system');
-  enableChat(true);
+  conn=c; setupConnectionEvents(conn); setStatus('Connected to '+conn.peer,'connected'); addMsg('🔔 Someone connected to you!','system'); enableChat(true);
 });
 
 /* ------------------------ MESSAGE HANDLING ------------------------ */
-async function handleData(data){
-  if(data.key){ await importKey(data.key); addMsg('🔐 Secure channel established!','system'); }
-  else if(data.msg){
-    const text=await decryptMsg(data.msg);
-    if(text) addMsg(text,'friend');
-  }
-}
+async function handleData(data){ if(data.key){ await importKey(data.key); addMsg('🔐 Secure channel established!','system'); } else if(data.msg){ const text=await decryptMsg(data.msg); if(text) addMsg(text,'friend'); } }
 
-/* ------------------------ SEND MESSAGE (ONLINE/OFFLINE) ------------------------ */
-async function sendMsg(){
-  const msgInput=document.getElementById('msgInput');
-  const msg=msgInput.value.trim();
-  if(!msg) return;
-  if(onlineMode && conn && conn.open){
-    const encrypted=await encryptMsg(msg);
-    conn.send({msg:encrypted});
-    addMsg(msg,'me');
-  }else{
-    sendBtMsg(msg);
-  }
-  msgInput.value='';
-}
+async function sendMsg(){ const msgInput=document.getElementById('msgInput'); const msg=msgInput.value.trim(); if(!msg) return; if(onlineMode && conn && conn.open){ const encrypted=await encryptMsg(msg); conn.send({msg:encrypted}); addMsg(msg,'me'); }else{ sendBtMsg(msg); } msgInput.value=''; }
 
-/* ------------------------ BLUETOOTH (OFFLINE) ------------------------ */
-async function connectBluetooth(){
-  try{
-    btDevice=await navigator.bluetooth.requestDevice({acceptAllDevices:true, optionalServices:['0000ffe0-0000-1000-8000-00805f9b34fb']});
-    btServer=await btDevice.gatt.connect();
-    const service=await btServer.getPrimaryService('0000ffe0-0000-1000-8000-00805f9b34fb');
-    btCharacteristic=await service.getCharacteristic('0000ffe1-0000-1000-8000-00805f9b34fb');
-    btCharacteristic.startNotifications();
-    btCharacteristic.addEventListener('characteristicvaluechanged',handleBtMsg);
-    addMsg('🔵 Bluetooth connected!','system');
-    flushOfflineQueue();
-  }catch(e){ addMsg('⚠ Bluetooth connect failed','system'); console.error(e); }
-}
+/* ------------------------ BLUETOOTH OFFLINE ------------------------ */
+async function connectBluetooth(){ try{ btDevice=await navigator.bluetooth.requestDevice({acceptAllDevices:true, optionalServices:['0000ffe0-0000-1000-8000-00805f9b34fb']}); btServer=await btDevice.gatt.connect(); const service=await btServer.getPrimaryService('0000ffe0-0000-1000-8000-00805f9b34fb'); btCharacteristic=await service.getCharacteristic('0000ffe1-0000-1000-8000-00805f9b34fb'); btCharacteristic.startNotifications(); btCharacteristic.addEventListener('characteristicvaluechanged',handleBtMsg); addMsg('🔵 Bluetooth connected!','system'); flushOfflineQueue(); }catch(e){ addMsg('⚠ Bluetooth connect failed','system'); console.error(e); } }
 
-async function sendBtMsg(msg){
-  if(!btCharacteristic){ offlineQueue.push(msg); addMsg('⚠ Offline message queued','system'); return; }
-  const encrypted=await encryptMsg(msg);
-  const data=new Uint8Array(JSON.stringify(encrypted).split('').map(c=>c.charCodeAt(0)));
-  await btCharacteristic.writeValue(data);
-  addMsg(msg,'me');
-}
-
-function handleBtMsg(event){
-  const raw=new TextDecoder().decode(event.target.value);
-  const payload=JSON.parse(raw);
-  decryptMsg(payload).then(text=>{ if(text) addMsg(text,'friend'); });
-}
-
+async function sendBtMsg(msg){ if(!btCharacteristic){ offlineQueue.push(msg); addMsg('⚠ Offline message queued','system'); return; } const encrypted=await encryptMsg(msg); const data=new Uint8Array(JSON.stringify(encrypted).split('').map(c=>c.charCodeAt(0))); await btCharacteristic.writeValue(data); addMsg(msg,'me'); }
+function handleBtMsg(event){ const raw=new TextDecoder().decode(event.target.value); const payload=JSON.parse(raw); decryptMsg(payload).then(text=>{ if(text) addMsg(text,'friend'); }); }
 function flushOfflineQueue(){ offlineQueue.forEach(m=>sendBtMsg(m)); offlineQueue=[]; }
 
 /* ------------------------ ONLINE/OFFLINE DETECTION ------------------------ */
