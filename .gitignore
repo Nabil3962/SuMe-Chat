@@ -1,5 +1,5 @@
-# Node modules (if you ever add npm packages)
-node_modules/
+# Node modules
+/node_modules/
 
 # Logs
 npm-debug.log*
@@ -7,35 +7,18 @@ yarn-debug.log*
 yarn-error.log*
 *.log
 
-# OS generated files
+# OS files
 .DS_Store
 Thumbs.db
 
-# Build / Distribution directories
-/dist
-/build
+# Build / dist
+/dist/
+build/
+
+# VSCode
+.vscode/
 
 # Temporary files
 *.tmp
 *.swp
 *.swo
-
-# IDE/editor settings
-.vscode/
-.idea/
-*.sublime-workspace
-*.sublime-project
-
-# Browser cache / local storage (optional)
-*.localstorage
-*.sessionstorage
-
-# Environment files
-.env
-.env.local
-.env.*.local
-
-# Backup files
-*~
-*.bak
-*.backup
