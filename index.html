@@ -11,11 +11,12 @@ body {
   background-color: #1b1b1b;
   color: #eee;
   margin: 0;
-  padding: 20px 10px;
+  padding: 0;
   display: flex;
   justify-content: center;
   align-items: flex-start;
   min-height: 100vh;
+  padding: 20px 10px;
 }
 
 #chatCard {
@@ -48,7 +49,6 @@ h2 {
   font-size: 1rem;
   flex-wrap: wrap;
 }
-
 #copyBtn {
   padding: 6px 12px;
   border: none;
@@ -85,17 +85,6 @@ h2 {
   font-size: 0.95rem;
 }
 .connect-row button:hover { background: #1e7e34; }
-
-#btConnectBtn {
-  padding: 10px 15px;
-  border-radius: 12px;
-  border: none;
-  background: #0066cc;
-  color: white;
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-#btConnectBtn:hover { background: #004c99; }
 
 #status {
   text-align: center;
@@ -183,11 +172,23 @@ h2 {
   font-size: 1rem;
 }
 
+#btConnectBtn {
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: none;
+  background: #007bff;
+  color: white;
+  cursor: pointer;
+  font-size: 0.85rem;
+  margin-top: 5px;
+}
+#btConnectBtn:hover { background: #0056b3; }
+
 @media(max-width: 480px){
   #chatCard { padding: 15px; }
   h2 { font-size: 1.4rem; }
   .connect-row input, #msgInput { font-size: 0.85rem; padding: 10px; }
-  .connect-row button, #sendBtn, #copyBtn, #btConnectBtn { font-size: 0.8rem; padding: 8px 12px; }
+  .connect-row button, #sendBtn, #copyBtn { font-size: 0.8rem; padding: 8px 12px; }
   .message { font-size: 0.85rem; }
   #status { font-size: 0.8rem; }
   #footer { font-size: 0.85rem; }
@@ -202,16 +203,12 @@ h2 {
   <div id="myId">
     <span>Your Peer ID: <span id="myPeerId">Generating...</span></span>
     <button id="copyBtn" onclick="copyPeerId()">📋 Copy</button>
+    <button id="btConnectBtn" onclick="connectBluetooth()">🔵 Connect via Bluetooth</button>
   </div>
 
   <div class="connect-row">
     <input id="peerIdInput" placeholder="Friend's Peer ID" />
     <button onclick="connectPeer()">Connect</button>
-  </div>
-
-  <!-- Bluetooth connect button -->
-  <div class="connect-row">
-    <button id="btConnectBtn" onclick="connectBluetooth()">Connect via Bluetooth</button>
   </div>
 
   <div id="status" class="disconnected">Status: Not connected</div>
@@ -236,7 +233,11 @@ let offlineQueue = [];
 let btDevice, btServer, btCharacteristic;
 
 /* ------------------------ PEERJS (Online) ------------------------ */
-const peer = new Peer({
+// Use static peer ID for reliability
+const myPeerId = localStorage.getItem('myPeerId') || 'user' + Math.floor(Math.random()*10000);
+localStorage.setItem('myPeerId', myPeerId);
+
+const peer = new Peer(myPeerId, {
   host: '0.peerjs.com',
   port: 443,
   secure: true,
@@ -245,14 +246,18 @@ const peer = new Peer({
   config: {
     iceServers: [
       { urls: ['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302'] },
-      { urls: 'turn:relay1.expressturn.com:3478', username:'efYQXKAB2wxWtdjKOf', credential:'W9qTXeDtvz7cOZZv' }
+      {
+        urls: 'turn:relay1.expressturn.com:3478',
+        username: 'efYQXKAB2wxWtdjKOf',
+        credential: 'W9qTXeDtvz7cOZZv'
+      }
     ],
     sdpSemantics: 'unified-plan'
   }
 });
 
-peer.on('open', async id => {
-  document.getElementById('myPeerId').innerText = id;
+peer.on('open', async id=>{
+  document.getElementById('myPeerId').innerText=id;
   await generateKey();
   setStatus('Ready to connect','disconnected');
 });
@@ -325,11 +330,18 @@ function connectPeer(){
   if(peerId===peer.id) return alert('You cannot connect to yourself!');
   setStatus('Connecting...','connecting');
   conn = peer.connect(peerId,{reliable:true});
-  setupConnectionEvents(conn);
+  
+  // Timeout if peer unreachable
+  const timeout = setTimeout(()=>{
+      if(!conn.open){ setStatus('Failed to connect','disconnected'); addMsg('⚠ Connection timeout. Peer may be offline.','system'); }
+  },10000);
+
+  setupConnectionEvents(conn, timeout);
 }
 
-function setupConnectionEvents(c){
+function setupConnectionEvents(c, timeout=null){
   c.on('open', async ()=>{
+    if(timeout) clearTimeout(timeout);
     setStatus('Connected to '+c.peer,'connected');
     addMsg('✅ Connected to '+c.peer,'system');
     enableChat(true);
@@ -415,6 +427,7 @@ function flushOfflineQueue(){ offlineQueue.forEach(m=>sendBtMsg(m)); offlineQueu
 /* ------------------------ ONLINE/OFFLINE DETECTION ------------------------ */
 window.addEventListener('online', ()=>{ onlineMode=true; addMsg('🌐 Online mode','system'); flushOfflineQueue(); });
 window.addEventListener('offline', ()=>{ onlineMode=false; addMsg('🔵 Offline mode (Bluetooth)','system'); });
+
 </script>
 </body>
 </html>
