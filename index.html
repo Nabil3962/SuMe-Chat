@@ -5,7 +5,6 @@
 <title>SuMe-Chat | Secure P2P Chat</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-/* ---------------------------- FULL ORIGINAL CSS ---------------------------- */
 * { box-sizing: border-box; }
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -19,6 +18,7 @@ body {
   min-height: 100vh;
   padding: 20px 10px;
 }
+
 #chatCard {
   width: 100%;
   max-width: 700px;
@@ -30,6 +30,7 @@ body {
   flex-direction: column;
   gap: 15px;
 }
+
 h2 {
   color: #28a745;
   text-align: center;
@@ -37,6 +38,7 @@ h2 {
   font-weight: 600;
   font-size: 1.8rem;
 }
+
 #myId {
   display: flex;
   justify-content: space-between;
@@ -58,6 +60,7 @@ h2 {
   margin-top: 5px;
 }
 #copyBtn:hover { background: #1e7e34; }
+
 .connect-row {
   display: flex;
   gap: 12px;
@@ -82,6 +85,7 @@ h2 {
   font-size: 0.95rem;
 }
 .connect-row button:hover { background: #1e7e34; }
+
 #status {
   text-align: center;
   font-size: 0.9rem;
@@ -92,6 +96,7 @@ h2 {
 #status.connecting { color: orange; }
 #status.connected { color: #00ff00; }
 #status.disconnected { color: red; }
+
 #chatContainer {
   flex: 1;
   display: flex;
@@ -102,6 +107,7 @@ h2 {
   overflow: hidden;
   box-shadow: inset 0 0 10px rgba(0,0,0,0.4);
 }
+
 #chat {
   flex: 1;
   padding: 18px;
@@ -111,6 +117,7 @@ h2 {
   gap: 10px;
   scroll-behavior: smooth;
 }
+
 .message {
   padding: 10px 18px;
   border-radius: 20px;
@@ -124,7 +131,7 @@ h2 {
 .friend { background-color: #2e2e2e; color: #fff; align-self: flex-start; border-bottom-left-radius: 5px; }
 .system { background-color: #444; color: #ffcc00; align-self: center; max-width: 90%; text-align: center; font-weight: bold; }
 .timestamp { font-size: 0.75rem; color: #aaa; margin-top: 2px; text-align: right; }
-.receipt { font-size: 0.75rem; color: #0f0; margin-left: 5px; }
+
 #controls {
   flex-shrink: 0;
   display: flex;
@@ -155,6 +162,7 @@ h2 {
 }
 #sendBtn:disabled { opacity: 0.5; cursor: not-allowed; }
 #sendBtn:hover:enabled { background: #1e7e34; }
+
 #footer {
   text-align: center;
   font-weight: bold;
@@ -163,6 +171,7 @@ h2 {
   text-shadow: 0 0 5px #ffcc00;
   font-size: 1rem;
 }
+
 @media(max-width: 480px){
   #chatCard { padding: 15px; }
   h2 { font-size: 1.4rem; }
@@ -204,108 +213,131 @@ h2 {
 
 <script src="https://unpkg.com/peerjs/dist/peerjs.min.js"></script>
 <script>
-let conn, cryptoKey, reconnectAttempts=0, maxReconnect=5, messageQueue=[];
-let isTyping=false, typingTimeout;
+/* ------------------------ CORE VARIABLES ------------------------ */
+let conn, cryptoKey;
+let onlineMode = navigator.onLine;
+let offlineQueue = [];
+let btDevice, btServer, btCharacteristic;
 
-// ------------------ PEERJS ------------------
-const peer = new Peer({host:'0.peerjs.com',port:443,secure:true,path:'/',debug:1,config:{
-  iceServers:[
-    { urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302'] },
-    { urls:'turn:relay1.expressturn.com:3478', username:'efYQXKAB2wxWtdjKOf', credential:'W9qTXeDtvz7cOZZv' }
-  ],
-  sdpSemantics:'unified-plan'
-}});
+/* ------------------------ PEERJS (Online) ------------------------ */
+const peer = new Peer({
+  host: '0.peerjs.com',
+  port: 443,
+  secure: true,
+  path: '/',
+  debug: 1,
+  config: {
+    iceServers: [
+      { urls: ['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302'] },
+      {
+        urls: 'turn:relay1.expressturn.com:3478',
+        username: 'efYQXKAB2wxWtdjKOf',
+        credential: 'W9qTXeDtvz7cOZZv'
+      }
+    ],
+    sdpSemantics: 'unified-plan'
+  }
+});
 
 peer.on('open', async id=>{
   document.getElementById('myPeerId').innerText=id;
   await generateKey();
   setStatus('Ready to connect','disconnected');
-  flushQueue();
 });
 
-peer.on('error', err=>{ console.error(err); addMsg('⚠ '+err.message,'system'); setStatus('Error','disconnected'); });
+peer.on('error', err=>{
+  console.error('PeerJS Error:', err);
+  setStatus('Error: '+err.type,'disconnected');
+  addMsg('⚠ '+err.message,'system');
+});
 
-// ------------------ CRYPTO ------------------
-async function generateKey(){ cryptoKey=await crypto.subtle.generateKey({name:"AES-GCM",length:256},true,["encrypt","decrypt"]); }
-async function exportKey(){ const raw=await crypto.subtle.exportKey("raw",cryptoKey); return btoa(String.fromCharCode(...new Uint8Array(raw))); }
-async function importKey(base64){ try{ const raw=Uint8Array.from(atob(base64),c=>c.charCodeAt(0)); cryptoKey=await crypto.subtle.importKey("raw",raw,"AES-GCM",true,["encrypt","decrypt"]); } catch(e){ addMsg("❌ Key exchange failed!","system"); } }
-async function encryptMsg(msg){ const enc=new TextEncoder().encode(msg); const iv=crypto.getRandomValues(new Uint8Array(12)); const ciphertext=await crypto.subtle.encrypt({name:"AES-GCM",iv},cryptoKey,enc); return {iv:Array.from(iv),data:Array.from(new Uint8Array(ciphertext))}; }
-async function decryptMsg(payload){ try{ const iv=new Uint8Array(payload.iv); const data=new Uint8Array(payload.data); return new TextDecoder().decode(await crypto.subtle.decrypt({name:"AES-GCM",iv},cryptoKey,data)); } catch{ addMsg("⚠ Decryption failed.","system"); return null; } }
+/* ------------------------ ENCRYPTION ------------------------ */
+async function generateKey(){
+  cryptoKey = await crypto.subtle.generateKey({name:"AES-GCM",length:256},true,["encrypt","decrypt"]);
+}
 
-// ------------------ UTILITIES ------------------
+async function exportKey(){
+  const raw = await crypto.subtle.exportKey("raw",cryptoKey);
+  return btoa(String.fromCharCode(...new Uint8Array(raw)));
+}
+
+async function importKey(base64){
+  try{
+    const raw = Uint8Array.from(atob(base64),c=>c.charCodeAt(0));
+    cryptoKey = await crypto.subtle.importKey("raw",raw,"AES-GCM",true,["encrypt","decrypt"]);
+  }catch(e){ addMsg("❌ Key exchange failed!", "system"); console.error(e); }
+}
+
+async function encryptMsg(msg){
+  const enc = new TextEncoder().encode(msg);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ciphertext = await crypto.subtle.encrypt({name:"AES-GCM",iv},cryptoKey,enc);
+  return {iv:Array.from(iv),data:Array.from(new Uint8Array(ciphertext))};
+}
+
+async function decryptMsg(payload){
+  try{
+    const iv=new Uint8Array(payload.iv);
+    const data=new Uint8Array(payload.data);
+    const plain=await crypto.subtle.decrypt({name:"AES-GCM",iv},cryptoKey,data);
+    return new TextDecoder().decode(plain);
+  }catch{
+    addMsg("⚠ Decryption failed. Possibly tampered message.","system");
+    return null;
+  }
+}
+
+/* ------------------------ UTILITIES ------------------------ */
 function sanitize(str){ return str.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
-function copyPeerId(){ const id=document.getElementById('myPeerId').innerText; if(id && id!=='Generating...') navigator.clipboard.writeText(id).then(()=>alert('Peer ID copied!')); }
+
+function copyPeerId(){
+  const id=document.getElementById('myPeerId').innerText;
+  if(id && id!=='Generating...'){ navigator.clipboard.writeText(id).then(()=>alert('Peer ID copied!')).catch(()=>alert('Clipboard error!')); }
+}
+
 function setStatus(text,cls){ const s=document.getElementById('status'); s.innerText="Status: "+text; s.className=cls; }
-function addMsg(text,type){ const chat=document.getElementById('chat'); const div=document.createElement('div'); div.className=type==='me'?'message me':type==='friend'?'message friend':'message system'; div.innerHTML=sanitize(text)+`<div class="timestamp">${new Date().toLocaleTimeString()}</div>`; chat.appendChild(div); chat.scrollTo({top:chat.scrollHeight,behavior:'smooth'}); }
-function addMsgWithReceipt(text,type,msgId,status){ const chat=document.getElementById('chat'); const div=document.createElement('div'); div.className=type==='me'?'message me':type==='friend'?'message friend':'message system'; div.id=msgId?`msg-${msgId}`:''; div.innerHTML=sanitize(text)+(type==='me'&&status?` <span class="receipt">${status==='pending'?'⏳':status==='sent'?'✅':'❌'}</span>`:'')+`<div class="timestamp">${new Date().toLocaleTimeString()}</div>`; chat.appendChild(div); chat.scrollTo({top:chat.scrollHeight,behavior:'smooth'}); }
-function updateMsgStatus(msgId,status){ const div=document.getElementById(`msg-${msgId}`); if(div){ const receipt=div.querySelector('.receipt'); if(receipt) receipt.innerText=status==='sent'?'✅':status==='delivered'?'✅✅':'❌'; } }
 
-// ------------------ CHAT ------------------
-function enableChat(enabled){ document.getElementById('sendBtn').disabled=!enabled; document.getElementById('msgInput').disabled=!enabled; }
-function flushQueue(){ if(conn && conn.open && messageQueue.length){ messageQueue.forEach(async m=>{ const encrypted=await encryptMsg(m.msg); conn.send({msg:encrypted,msgId:m.msgId}); addMsgWithReceipt(m.msg,'me',m.msgId,'sent'); }); messageQueue=[]; } }
+function addMsg(text,type){
+  const chat=document.getElementById('chat');
+  const div=document.createElement('div');
+  div.className= type==='me'?'message me':type==='friend'?'message friend':'message system';
+  div.innerHTML=sanitize(text)+`<div class="timestamp">${new Date().toLocaleTimeString()}</div>`;
+  chat.appendChild(div);
+  chat.scrollTo({top:chat.scrollHeight,behavior:'smooth'});
+}
 
-// ------------------ CONNECTION ------------------
+/* ------------------------ ONLINE CONNECTION ------------------------ */
 function connectPeer(){
   const peerId=document.getElementById('peerIdInput').value.trim();
   if(!peerId) return alert('Enter Peer ID!');
-  if(peerId===peer.id) return alert('Cannot connect to yourself!');
+  if(peerId===peer.id) return alert('You cannot connect to yourself!');
   setStatus('Connecting...','connecting');
-  conn=peer.connect(peerId,{reliable:true});
+  conn = peer.connect(peerId,{reliable:true});
   setupConnectionEvents(conn);
 }
 
 function setupConnectionEvents(c){
-  c.on('open',async()=>{
-    reconnectAttempts=0;
+  c.on('open', async ()=>{
     setStatus('Connected to '+c.peer,'connected');
     addMsg('✅ Connected to '+c.peer,'system');
     enableChat(true);
-    try{ c.send({key:await exportKey()}); } catch(e){ addMsg('⚠ Could not send key.','system'); }
-    flushQueue();
+    try{ c.send({key:await exportKey()}); } catch(e){ addMsg('⚠ Could not send key.','system'); console.error(e); }
   });
-  c.on('data',handleData);
-  c.on('close',()=>{ addMsg('❌ Connection closed','system'); enableChat(false); autoReconnect(); });
-  c.on('error',err=>{ console.error(err); addMsg('⚠ Connection error','system'); enableChat(false); autoReconnect(); });
+  c.on('data', handleData);
+  c.on('close', ()=>{
+    setStatus('Disconnected','disconnected'); addMsg('❌ Connection closed','system'); enableChat(false);
+  });
+  c.on('error', err=>{
+    setStatus('Error: '+err.type,'disconnected'); addMsg('⚠ Connection error.','system'); console.error(err);
+  });
 }
 
-// ------------------ AUTO-RECONNECT ------------------
-function autoReconnect(){ if(reconnectAttempts>=maxReconnect){ setStatus('Disconnected','disconnected'); return; } reconnectAttempts++; setStatus(`Reconnecting... (attempt ${reconnectAttempts})`,'connecting'); setTimeout(()=>{ if(conn) conn.close(); connectPeer(); },Math.min(5000*reconnectAttempts,30000)); }
-
-// ------------------ MESSAGES ------------------
-async function sendMsg(){
-  const msgInput=document.getElementById('msgInput');
-  const msg=msgInput.value.trim();
-  if(!msg) return;
-  const msgId=Date.now()+Math.random();
-  addMsgWithReceipt(msg,'me',msgId,'pending');
-
-  if(conn && conn.open){
-    try{ const encrypted=await encryptMsg(msg); conn.send({msg:encrypted,msgId}); updateMsgStatus(msgId,'sent'); } 
-    catch(e){ updateMsgStatus(msgId,'failed'); addMsg('⚠ Failed to send.','system'); }
-  } else { messageQueue.push({msg,msgId}); }
-  msgInput.value='';
+function enableChat(enabled){
+  document.getElementById('sendBtn').disabled=!enabled;
+  document.getElementById('msgInput').disabled=!enabled;
 }
 
-// ------------------ TYPING INDICATOR ------------------
-const typingDiv=document.createElement('div'); typingDiv.className='message system'; typingDiv.id='typingIndicator'; typingDiv.style.display='none'; typingDiv.innerText='Friend is typing...'; document.getElementById('chat').appendChild(typingDiv);
-document.getElementById('msgInput').addEventListener('input',()=>{
-  if(conn && conn.open){
-    if(!isTyping){ isTyping=true; conn.send({typing:true}); }
-    clearTimeout(typingTimeout);
-    typingTimeout=setTimeout(()=>{ isTyping=false; conn.send({typing:false}); },1000);
-  }
-});
-
-// ------------------ DATA HANDLING ------------------
-async function handleData(data){
-  if(data.key){ await importKey(data.key); addMsg('🔐 Secure channel established!','system'); }
-  else if(data.msg){ const text=await decryptMsg(data.msg); if(text) addMsgWithReceipt(text,'friend',data.msgId,'delivered'); if(data.msgId) conn.send({delivered:data.msgId}); }
-  else if(data.typing!==undefined){ typingDiv.style.display=data.typing?'block':'none'; }
-  else if(data.delivered) updateMsgStatus(data.delivered,'delivered');
-}
-
-// ------------------ INCOMING CONNECTION ------------------
-peer.on('connection',c=>{
+peer.on('connection', c=>{
   if(conn && conn.open){ c.close(); return; }
   conn=c;
   setupConnectionEvents(conn);
@@ -313,6 +345,65 @@ peer.on('connection',c=>{
   addMsg('🔔 Someone connected to you!','system');
   enableChat(true);
 });
+
+/* ------------------------ MESSAGE HANDLING ------------------------ */
+async function handleData(data){
+  if(data.key){ await importKey(data.key); addMsg('🔐 Secure channel established!','system'); }
+  else if(data.msg){
+    const text=await decryptMsg(data.msg);
+    if(text) addMsg(text,'friend');
+  }
+}
+
+/* ------------------------ SEND MESSAGE (ONLINE/OFFLINE) ------------------------ */
+async function sendMsg(){
+  const msgInput=document.getElementById('msgInput');
+  const msg=msgInput.value.trim();
+  if(!msg) return;
+  if(onlineMode && conn && conn.open){
+    const encrypted=await encryptMsg(msg);
+    conn.send({msg:encrypted});
+    addMsg(msg,'me');
+  }else{
+    sendBtMsg(msg);
+  }
+  msgInput.value='';
+}
+
+/* ------------------------ BLUETOOTH (OFFLINE) ------------------------ */
+async function connectBluetooth(){
+  try{
+    btDevice=await navigator.bluetooth.requestDevice({acceptAllDevices:true, optionalServices:['0000ffe0-0000-1000-8000-00805f9b34fb']});
+    btServer=await btDevice.gatt.connect();
+    const service=await btServer.getPrimaryService('0000ffe0-0000-1000-8000-00805f9b34fb');
+    btCharacteristic=await service.getCharacteristic('0000ffe1-0000-1000-8000-00805f9b34fb');
+    btCharacteristic.startNotifications();
+    btCharacteristic.addEventListener('characteristicvaluechanged',handleBtMsg);
+    addMsg('🔵 Bluetooth connected!','system');
+    flushOfflineQueue();
+  }catch(e){ addMsg('⚠ Bluetooth connect failed','system'); console.error(e); }
+}
+
+async function sendBtMsg(msg){
+  if(!btCharacteristic){ offlineQueue.push(msg); addMsg('⚠ Offline message queued','system'); return; }
+  const encrypted=await encryptMsg(msg);
+  const data=new Uint8Array(JSON.stringify(encrypted).split('').map(c=>c.charCodeAt(0)));
+  await btCharacteristic.writeValue(data);
+  addMsg(msg,'me');
+}
+
+function handleBtMsg(event){
+  const raw=new TextDecoder().decode(event.target.value);
+  const payload=JSON.parse(raw);
+  decryptMsg(payload).then(text=>{ if(text) addMsg(text,'friend'); });
+}
+
+function flushOfflineQueue(){ offlineQueue.forEach(m=>sendBtMsg(m)); offlineQueue=[]; }
+
+/* ------------------------ ONLINE/OFFLINE DETECTION ------------------------ */
+window.addEventListener('online', ()=>{ onlineMode=true; addMsg('🌐 Online mode','system'); flushOfflineQueue(); });
+window.addEventListener('offline', ()=>{ onlineMode=false; addMsg('🔵 Offline mode (Bluetooth)','system'); });
+
 </script>
 </body>
 </html>
