@@ -11,12 +11,11 @@ body {
   background-color: #1b1b1b;
   color: #eee;
   margin: 0;
-  padding: 0;
+  padding: 20px 10px;
   display: flex;
   justify-content: center;
   align-items: flex-start;
   min-height: 100vh;
-  padding: 20px 10px;
 }
 
 #chatCard {
@@ -49,6 +48,7 @@ h2 {
   font-size: 1rem;
   flex-wrap: wrap;
 }
+
 #copyBtn {
   padding: 6px 12px;
   border: none;
@@ -85,6 +85,17 @@ h2 {
   font-size: 0.95rem;
 }
 .connect-row button:hover { background: #1e7e34; }
+
+#btConnectBtn {
+  padding: 10px 15px;
+  border-radius: 12px;
+  border: none;
+  background: #0066cc;
+  color: white;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+#btConnectBtn:hover { background: #004c99; }
 
 #status {
   text-align: center;
@@ -176,7 +187,7 @@ h2 {
   #chatCard { padding: 15px; }
   h2 { font-size: 1.4rem; }
   .connect-row input, #msgInput { font-size: 0.85rem; padding: 10px; }
-  .connect-row button, #sendBtn, #copyBtn { font-size: 0.8rem; padding: 8px 12px; }
+  .connect-row button, #sendBtn, #copyBtn, #btConnectBtn { font-size: 0.8rem; padding: 8px 12px; }
   .message { font-size: 0.85rem; }
   #status { font-size: 0.8rem; }
   #footer { font-size: 0.85rem; }
@@ -196,6 +207,11 @@ h2 {
   <div class="connect-row">
     <input id="peerIdInput" placeholder="Friend's Peer ID" />
     <button onclick="connectPeer()">Connect</button>
+  </div>
+
+  <!-- Bluetooth connect button -->
+  <div class="connect-row">
+    <button id="btConnectBtn" onclick="connectBluetooth()">Connect via Bluetooth</button>
   </div>
 
   <div id="status" class="disconnected">Status: Not connected</div>
@@ -229,18 +245,14 @@ const peer = new Peer({
   config: {
     iceServers: [
       { urls: ['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302'] },
-      {
-        urls: 'turn:relay1.expressturn.com:3478',
-        username: 'efYQXKAB2wxWtdjKOf',
-        credential: 'W9qTXeDtvz7cOZZv'
-      }
+      { urls: 'turn:relay1.expressturn.com:3478', username:'efYQXKAB2wxWtdjKOf', credential:'W9qTXeDtvz7cOZZv' }
     ],
     sdpSemantics: 'unified-plan'
   }
 });
 
-peer.on('open', async id=>{
-  document.getElementById('myPeerId').innerText=id;
+peer.on('open', async id => {
+  document.getElementById('myPeerId').innerText = id;
   await generateKey();
   setStatus('Ready to connect','disconnected');
 });
@@ -403,7 +415,6 @@ function flushOfflineQueue(){ offlineQueue.forEach(m=>sendBtMsg(m)); offlineQueu
 /* ------------------------ ONLINE/OFFLINE DETECTION ------------------------ */
 window.addEventListener('online', ()=>{ onlineMode=true; addMsg('🌐 Online mode','system'); flushOfflineQueue(); });
 window.addEventListener('offline', ()=>{ onlineMode=false; addMsg('🔵 Offline mode (Bluetooth)','system'); });
-
 </script>
 </body>
 </html>
