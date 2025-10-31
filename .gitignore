@@ -22,3 +22,6 @@ build/
 *.tmp
 *.swp
 *.swo
+
+# Environment / secret files
+.env
