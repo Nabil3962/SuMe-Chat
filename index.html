@@ -1,33 +1,83 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SuMe-Chat | Secure P2P Chat</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SuMe-Chat — Secure P2P</title>
+
+  <!-- CSS -->
   <link rel="stylesheet" href="style.css" />
+
+  <!-- Libraries -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css" />
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script defer src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+
+  <!-- App script -->
   <script defer src="script.js"></script>
 </head>
 <body>
-  <div class="chat-container">
-    <header>
-      <h1>SuMe-Chat</h1>
-      <p id="status">Connecting…</p>
-    </header>
+  <div id="app">
+    <aside class="left-panel">
+      <div class="brand">
+        <div class="title">🔐 <span class="neon">SuMe-Chat</span></div>
+        <div class="subtitle">Secure P2P • Offline Bluetooth</div>
+      </div>
 
-    <section class="info">
-      <p><strong>Your ID:</strong> <span id="myPeerId">---</span></p>
-      <input type="text" id="connectId" placeholder="Friend ID to connect" />
-      <button id="connectBtn">Connect</button>
-      <button id="btConnectBtn">Connect Bluetooth</button>
-    </section>
+      <div class="peer-section">
+        <label class="lbl">Your Peer ID</label>
+        <div class="peer-row">
+          <code id="myPeerId">Generating...</code>
+          <button id="copyBtn" class="btn-green">Copy</button>
+        </div>
 
-    <main id="chatBox"></main>
+        <label class="lbl">Connect to Peer</label>
+        <div class="peer-row">
+          <input id="peerInput" class="mono" placeholder="Paste friend's ID" />
+          <button id="connectBtn" class="btn-green">Connect</button>
+        </div>
 
-    <footer>
-      <input type="text" id="msgInput" placeholder="Type a message…" />
-      <button id="sendBtn">Send</button>
-    </footer>
+        <div class="status-row">
+          <span id="statusBadge" class="badge red"></span>
+          <div id="statusText" class="status-text">Initializing...</div>
+        </div>
+
+        <div class="actions">
+          <button id="btBtn" class="btn">Bluetooth Nearby</button>
+          <button id="clearBtn" class="btn">Clear History</button>
+        </div>
+      </div>
+
+      <div class="credit">Created by <strong>Suhail Al Mehedi</strong></div>
+    </aside>
+
+    <main class="chat-panel">
+      <div class="chat-header">
+        <div class="chat-title mono">#general</div>
+        <div id="typingIndicator" class="typing"></div>
+      </div>
+
+      <div id="chatLog" class="chat-log" aria-live="polite"></div>
+
+      <div class="composer">
+        <div class="toolbar">
+          <button id="mdHint" class="btn small">MD</button>
+          <button id="codeHint" class="btn small">Code</button>
+          <div class="spacer"></div>
+          <select id="fontSelect" class="small">
+            <option value="monospace">Monospace</option>
+            <option value="sans">Sans</option>
+          </select>
+        </div>
+
+        <textarea id="msgInput" class="mono" placeholder="Write a message (Markdown supported)"></textarea>
+        <div class="composer-row">
+          <button id="sendBtn" class="btn-green">Send</button>
+          <button id="attachBtn" class="btn">Attach</button>
+        </div>
+      </div>
+    </main>
   </div>
 </body>
 </html>
