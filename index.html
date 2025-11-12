@@ -1,34 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>SuMe-Chat | Secure P2P Chat</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SuMe-Chat | Secure P2P Chat</title>
+  <link rel="stylesheet" href="style.css" />
+  <script defer src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <script defer src="script.js"></script>
 </head>
 <body>
-<div id="chatCard">
-  <h2>🔐 SuMe-Chat</h2>
-  <div id="myId">
-    <span>Your Peer ID: <span id="myPeerId">Generating...</span></span>
-    <button id="copyBtn" onclick="copyPeerId()">📋 Copy</button>
-    <button id="btConnectBtn" onclick="connectBluetooth()">🔵 Connect via Bluetooth</button>
+  <div class="chat-container">
+    <header>
+      <h1>SuMe-Chat</h1>
+      <p id="status">Connecting…</p>
+    </header>
+
+    <section class="info">
+      <p><strong>Your ID:</strong> <span id="myPeerId">---</span></p>
+      <input type="text" id="connectId" placeholder="Friend ID to connect" />
+      <button id="connectBtn">Connect</button>
+      <button id="btConnectBtn">Connect Bluetooth</button>
+    </section>
+
+    <main id="chatBox"></main>
+
+    <footer>
+      <input type="text" id="msgInput" placeholder="Type a message…" />
+      <button id="sendBtn">Send</button>
+    </footer>
   </div>
-  <div class="connect-row">
-    <input id="peerIdInput" placeholder="Friend's Peer ID" />
-    <button onclick="connectPeer()">Connect</button>
-  </div>
-  <div id="status" class="disconnected">Status: Not connected</div>
-  <div id="chatContainer">
-    <div id="chat"></div>
-    <div id="controls">
-      <input id="msgInput" placeholder="Type a message..." disabled />
-      <button id="sendBtn" onclick="sendMsg()" disabled>Send</button>
-    </div>
-  </div>
-  <div id="footer">Created by Suhail Al Mehedi</div>
-</div>
-<script src="https://unpkg.com/peerjs/dist/peerjs.min.js"></script>
-<script src="script.js"></script>
 </body>
 </html>
