@@ -1,54 +1,177 @@
-// ---------- CORE VARIABLES ----------
-let conn, cryptoKey;
-let onlineMode = navigator.onLine;
-let offlineQueue = [];
-let btDevice, btServer, btCharacteristic;
+/* SuMe-Chat  |  Secure P2P + Bluetooth Chat  |  ECDH + AES-GCM */
 
-// ---------- UTILITIES ----------
-function sanitize(str){return str.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
-function setStatus(text,cls){const s=document.getElementById('status'); s.innerText="Status: "+text; s.className=cls;}
-function addMsg(text,type){const chat=document.getElementById('chat'); const div=document.createElement('div'); div.className= type==='me'?'message me':type==='friend'?'message friend':'message system'; div.innerHTML=sanitize(text)+`<div class="timestamp">${new Date().toLocaleTimeString()}</div>`; chat.appendChild(div); chat.scrollTo({top:chat.scrollHeight,behavior:'smooth'});}
-function copyPeerId(){const id=document.getElementById('myPeerId').innerText; if(id && id!=='Generating...'){navigator.clipboard.writeText(id).then(()=>alert('Peer ID copied!')).catch(()=>alert('Clipboard error!'));}}
+// ---------- ELEMENTS ----------
+const statusEl = document.getElementById("status");
+const chatBox = document.getElementById("chatBox");
+const msgInput = document.getElementById("msgInput");
+const sendBtn = document.getElementById("sendBtn");
+const connectBtn = document.getElementById("connectBtn");
+const connectId = document.getElementById("connectId");
+const btConnectBtn = document.getElementById("btConnectBtn");
+const myPeerIdEl = document.getElementById("myPeerId");
 
-// ---------- ENCRYPTION ----------
-async function generateKey(){ cryptoKey = await crypto.subtle.generateKey({name:"AES-GCM",length:256},true,["encrypt","decrypt"]); }
-async function exportKey(){ const raw = await crypto.subtle.exportKey("raw",cryptoKey); return btoa(String.fromCharCode(...new Uint8Array(raw))); }
-async function importKey(base64){ try{ const raw=Uint8Array.from(atob(base64),c=>c.charCodeAt(0)); cryptoKey=await crypto.subtle.importKey("raw",raw,"AES-GCM",true,["encrypt","decrypt"]); }catch(e){ addMsg("❌ Key exchange failed!","system"); console.error(e); } }
-async function encryptMsg(msg){ const enc=new TextEncoder().encode(msg); const iv=crypto.getRandomValues(new Uint8Array(12)); const ciphertext=await crypto.subtle.encrypt({name:"AES-GCM",iv},cryptoKey,enc); return {iv:Array.from(iv),data:Array.from(new Uint8Array(ciphertext))}; }
-async function decryptMsg(payload){ try{ const iv=new Uint8Array(payload.iv); const data=new Uint8Array(payload.data); const plain=await crypto.subtle.decrypt({name:"AES-GCM",iv},cryptoKey,data); return new TextDecoder().decode(plain); }catch{ addMsg("⚠ Decryption failed. Possibly tampered message.","system"); return null; } }
+// ---------- GLOBAL ----------
+let peer, conn;
+let btCharacteristic = null;
+let messageQueue = [];
+
+// ---------- UI HELPERS ----------
+function setStatus(txt, cls = "") {
+  statusEl.textContent = txt;
+  statusEl.className = cls;
+}
+function addMsg(text, cls = "system") {
+  const div = document.createElement("div");
+  div.className = "msg " + cls;
+  div.textContent = text;
+  chatBox.appendChild(div);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+function sanitize(txt) {
+  return txt.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+}
+
+// ---------- ECDH → AES-GCM ----------
+let cryptoKey = null, ecdhPair = null;
+function ab2b64(buf) { return btoa(String.fromCharCode(...new Uint8Array(buf))); }
+function b642ab(b64) { return Uint8Array.from(atob(b64), c => c.charCodeAt(0)).buffer; }
+
+async function genEcdhPub() {
+  ecdhPair = await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveKey"]);
+  const raw = await crypto.subtle.exportKey("raw", ecdhPair.publicKey);
+  return ab2b64(raw);
+}
+async function deriveSharedKey(peerPubB64) {
+  const peerRaw = b642ab(peerPubB64);
+  const peerPub = await crypto.subtle.importKey("raw", peerRaw, { name: "ECDH", namedCurve: "P-256" }, true, []);
+  cryptoKey = await crypto.subtle.deriveKey({ name: "ECDH", public: peerPub },
+                                            ecdhPair.privateKey,
+                                            { name: "AES-GCM", length: 256 },
+                                            false, ["encrypt", "decrypt"]);
+  addMsg("🔐 Secure channel established", "system");
+}
+async function encryptMsg(msg) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv },
+                                         cryptoKey, new TextEncoder().encode(msg));
+  return { iv: Array.from(iv), data: Array.from(new Uint8Array(ct)) };
+}
+async function decryptMsg(payload) {
+  try {
+    const plain = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: new Uint8Array(payload.iv) },
+      cryptoKey, new Uint8Array(payload.data)
+    );
+    return new TextDecoder().decode(plain);
+  } catch {
+    addMsg("⚠ Decryption failed", "system");
+    return null;
+  }
+}
 
 // ---------- PEERJS ----------
-function uuidv4(){return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0,v=c==='x'?r:(r&0x3|0x8);return v.toString(16);});}
-const myPeerId = localStorage.getItem('myPeerId') || uuidv4();
-localStorage.setItem('myPeerId', myPeerId);
+let myPubKey = null;
 
-const peer = new Peer(myPeerId,{
-  host:'0.peerjs.com', port:443, secure:true, path:'/', debug:1,
-  config:{iceServers:[
-    {urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302']},
-    {urls:'turn:relay1.expressturn.com:3478',username:'efYQXKAB2wxWtdjKOf',credential:'W9qTXeDtvz7cOZZv'}
-  ], sdpSemantics:'unified-plan'}
+peer = new Peer({
+  secure: true,
+  host: "0.peerjs.com",
+  port: 443,
+  config: { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] }
 });
 
-peer.on('open',async id=>{document.getElementById('myPeerId').innerText=id; await generateKey(); setStatus('Ready to connect','disconnected');});
-peer.on('error',err=>{console.error('PeerJS Error:',err); setStatus('Error: '+err.type,'disconnected'); addMsg('⚠ '+err.message,'system');});
+peer.on("open", async id => {
+  myPeerIdEl.textContent = id;
+  myPubKey = await genEcdhPub();
+  setStatus("Ready to connect", "ok");
+});
 
-// ---------- CONNECTION ----------
-function connectPeer(){const peerId=document.getElementById('peerIdInput').value.trim();if(!peerId) return alert('Enter Peer ID!'); if(peerId===peer.id) return alert('You cannot connect to yourself!'); setStatus('Connecting...','connecting'); conn=peer.connect(peerId,{reliable:true}); const timeout=setTimeout(()=>{if(!conn.open){ setStatus('Failed to connect','disconnected'); addMsg('⚠ Connection timeout. Peer may be offline.','system'); }},10000); setupConnectionEvents(conn,timeout);}
-function setupConnectionEvents(c,timeout=null){ c.on('open',async ()=>{if(timeout) clearTimeout(timeout); setStatus('Connected to '+c.peer,'connected'); addMsg('✅ Connected to '+c.peer,'system'); enableChat(true); try{c.send({key:await exportKey()});}catch(e){addMsg('⚠ Could not send key.','system'); console.error(e);}}); c.on('data',handleData); c.on('close',()=>{ setStatus('Disconnected','disconnected'); addMsg('❌ Connection closed','system'); enableChat(false);}); c.on('error',err=>{ setStatus('Error: '+err.type,'disconnected'); addMsg('⚠ Connection error.','system'); console.error(err);});}
-function enableChat(enabled){document.getElementById('sendBtn').disabled=!enabled; document.getElementById('msgInput').disabled=!enabled;}
-peer.on('connection',c=>{if(conn && conn.open){c.close(); return;} conn=c; setupConnectionEvents(conn); setStatus('Connected to '+conn.peer,'connected'); addMsg('🔔 Someone connected to you!','system'); enableChat(true);});
+peer.on("connection", c => {
+  conn = c;
+  setStatus("Connected to peer", "ok");
+  c.on("data", handleData);
+  c.send({ pubKey: myPubKey });
+  flushQueue();
+});
+peer.on("error", err => {
+  console.error(err);
+  setStatus("Error: " + (err.message || err.type));
+});
 
-// ---------- MESSAGE ----------
-async function handleData(data){if(data.key){ await importKey(data.key); addMsg('🔐 Secure channel established!','system'); } else if(data.msg){ const text=await decryptMsg(data.msg); if(text) addMsg(text,'friend'); }}
-async function sendMsg(){const msgInput=document.getElementById('msgInput'); const msg=msgInput.value.trim(); if(!msg) return; if(onlineMode && conn && conn.open){ const encrypted=await encryptMsg(msg); conn.send({msg:encrypted}); addMsg(msg,'me'); } else { sendBtMsg(msg); } msgInput.value='';}
+// Connect button
+connectBtn.onclick = () => {
+  const id = connectId.value.trim();
+  if (!id) return alert("Enter peer ID");
+  conn = peer.connect(id);
+  conn.on("open", () => {
+    setStatus("Connected to peer", "ok");
+    conn.on("data", handleData);
+    conn.send({ pubKey: myPubKey });
+    flushQueue();
+  });
+};
+
+async function handleData(data) {
+  if (data.pubKey) await deriveSharedKey(data.pubKey);
+  else if (data.msg) {
+    const text = await decryptMsg(data.msg);
+    if (text) addMsg(text, "friend");
+  }
+}
+
+async function sendMsg() {
+  const msg = msgInput.value.trim();
+  if (!msg) return;
+  msgInput.value = "";
+  addMsg(msg, "me");
+  const enc = cryptoKey ? await encryptMsg(msg) : { plain: msg };
+  if (conn && conn.open) conn.send({ msg: enc });
+  else messageQueue.push(enc);
+  if (btCharacteristic) await sendBt(enc);
+}
+
+async function flushQueue() {
+  if (conn && conn.open && messageQueue.length) {
+    for (const m of messageQueue) conn.send({ msg: m });
+    messageQueue = [];
+  }
+}
+sendBtn.onclick = sendMsg;
+msgInput.addEventListener("keypress", e => { if (e.key === "Enter") sendMsg(); });
 
 // ---------- BLUETOOTH ----------
-async function connectBluetooth(){try{ btDevice=await navigator.bluetooth.requestDevice({acceptAllDevices:true, optionalServices:['0000ffe0-0000-1000-8000-00805f9b34fb']}); btServer=await btDevice.gatt.connect(); const service=await btServer.getPrimaryService('0000ffe0-0000-1000-8000-00805f9b34fb'); btCharacteristic=await service.getCharacteristic('0000ffe1-0000-1000-8000-00805f9b34fb'); btCharacteristic.startNotifications(); btCharacteristic.addEventListener('characteristicvaluechanged',handleBtMsg); addMsg('🔵 Bluetooth connected!','system'); flushOfflineQueue();}catch(e){addMsg('⚠ Bluetooth connect failed','system'); console.error(e);}}
-async function sendBtMsg(msg){if(!btCharacteristic){offlineQueue.push(msg); addMsg('⚠ Offline message queued','system'); return;} const encrypted=await encryptMsg(msg); const data=new Uint8Array(JSON.stringify(encrypted).split('').map(c=>c.charCodeAt(0))); await btCharacteristic.writeValue(data); addMsg(msg,'me'); }
-function handleBtMsg(event){const raw=new TextDecoder().decode(event.target.value); const payload=JSON.parse(raw); decryptMsg(payload).then(text=>{if(text) addMsg(text,'friend');});}
-function flushOfflineQueue(){offlineQueue.forEach(m=>sendBtMsg(m)); offlineQueue=[];}
+const CHUNK = 180;
+async function connectBluetooth() {
+  try {
+    const dev = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: [0xFFE0] });
+    const server = await dev.gatt.connect();
+    const svc = await server.getPrimaryService(0xFFE0);
+    btCharacteristic = await svc.getCharacteristic(0xFFE1);
+    setStatus("Bluetooth connected", "ok");
+    btCharacteristic.addEventListener("characteristicvaluechanged", handleBt);
+    await btCharacteristic.startNotifications();
+  } catch (e) {
+    console.error(e);
+    setStatus("Bluetooth failed");
+  }
+}
+btConnectBtn.onclick = connectBluetooth;
 
-// ---------- ONLINE/OFFLINE ----------
-window.addEventListener('online',()=>{onlineMode=true; addMsg('🌐 Online mode','system'); flushOfflineQueue();});
-window.addEventListener('offline',()=>{onlineMode=false; addMsg('🔵 Offline mode (Bluetooth)','system');});
+async function sendBt(payload) {
+  const str = JSON.stringify(payload);
+  for (let i = 0; i < str.length; i += CHUNK) {
+    const frame = str.slice(i, i + CHUNK);
+    const buf = new TextEncoder().encode(frame);
+    await btCharacteristic.writeValue(buf);
+    await new Promise(r => setTimeout(r, 40));
+  }
+}
+async function handleBt(e) {
+  try {
+    const str = new TextDecoder().decode(e.target.value);
+    const data = JSON.parse(str);
+    const text = cryptoKey ? await decryptMsg(data) : data.plain;
+    if (text) addMsg(text, "friend");
+  } catch (err) {
+    console.error("BT parse fail", err);
+  }
+}
