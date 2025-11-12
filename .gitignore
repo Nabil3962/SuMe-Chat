@@ -1,27 +1,66 @@
-# Node modules
-/node_modules/
+# SuMe-Chat .gitignore
 
-# Logs
+# Node modules and dependencies
+node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-*.log
+pnpm-debug.log*
 
-# OS files
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+logs/
+*.log
+*.log.*
+log.txt
+
+# Build output
+dist/
+build/
+.cache/
+out/
+tmp/
+temp/
+
+# Editor / IDE files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS-specific files
 .DS_Store
 Thumbs.db
+ehthumbs.db
+desktop.ini
 
-# Build / dist
-/dist/
-build/
-
-# VSCode
-.vscode/
-
-# Temporary files
+# Backup files
+*.bak
 *.tmp
-*.swp
-*.swo
+*.old
+*.orig
 
-# Environment / secret files
-.env
+# PeerJS server cache / sessions (if any)
+peerjsdb/
+sessions/
+
+# Test coverage
+coverage/
+*.lcov
+
+# Optional: Ignore generated HTML/JS minified bundles
+*.min.js
+*.min.css
+
+# Misc
+package-lock.json
+yarn.lock
